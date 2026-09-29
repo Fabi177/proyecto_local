@@ -58,10 +58,16 @@
                 <!-- Tarjeta de Comercio -->
                 <div class="bg-white overflow-hidden shadow-lg sm:rounded-lg mb-6 flex flex-col sm:flex-row">
                     <div class="sm:w-1/3">
-                        <!-- Placeholder de la inicial del nombre -->
-                        <img src="https://placehold.co/600x400/2ecc71/white?text={{ $comercio->nombre[0] }}"
-                             alt="Logo de {{ $comercio->nombre }}"
-                             class="w-full h-48 sm:h-full object-cover">
+                        @if ($comercio->logo_url)
+                            <img src="{{ $comercio->logo_url }}"
+                                 alt="Logo de {{ $comercio->nombre }}"
+                                 class="w-full h-48 sm:h-full object-contain bg-white p-2">
+                        @else
+                            <!-- Placeholder de la inicial del nombre (comercios sin logo) -->
+                            <img src="https://placehold.co/600x400/2ecc71/white?text={{ $comercio->nombre[0] }}"
+                                 alt="Logo de {{ $comercio->nombre }}"
+                                 class="w-full h-48 sm:h-full object-cover">
+                        @endif
                     </div>
 
                     <!-- Info del Comercio -->

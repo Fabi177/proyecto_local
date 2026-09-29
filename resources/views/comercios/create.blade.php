@@ -14,7 +14,7 @@
                 </p>
             </div>
 
-            <form method="POST" action="{{ route('comercio.store') }}">
+            <form method="POST" action="{{ route('comercio.store') }}" enctype="multipart/form-data">
                 @csrf
 
                 <div class="p-6 md:p-8">
@@ -95,6 +95,8 @@
                             </div>
                         </div>
                     </div>
+
+                    @include('comercios.partials.selector-logo')
 
                     <div class="input-wrapper">
                         <label for="direccion" class="input-label">{{ __('Dirección *') }}</label>

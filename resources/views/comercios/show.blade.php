@@ -18,10 +18,17 @@
                 <!-- ================================== -->
                 <div class="md:col-span-1 p-6 bg-gray-50 border-r border-gray-200">
 
-                    <!-- (Placeholder para el Logo/Imagen) -->
-                    <div class="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center">
-                        <span class="text-gray-500">(Aquí irá el Logo/Imagen Principal)</span>
-                    </div>
+                    <!-- Logo / Imagen del comercio -->
+                    @if ($comercio->logo_url)
+                        <img src="{{ $comercio->logo_url }}"
+                             alt="Logo de {{ $comercio->nombre }}"
+                             class="w-full h-48 object-contain bg-white rounded-lg border border-gray-200">
+                    @else
+                        <div class="w-full h-48 bg-gray-200 rounded-lg flex flex-col items-center justify-center">
+                            <span class="text-6xl font-bold text-gray-400">{{ mb_strtoupper(mb_substr($comercio->nombre, 0, 1)) }}</span>
+                            <span class="mt-2 text-sm text-gray-500">Sin logo</span>
+                        </div>
+                    @endif
 
                     <h3 class="text-lg font-semibold text-gray-800 mt-6 mb-2">Ubicación y Contacto</h3>
 

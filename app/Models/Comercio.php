@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo; // <-- Importante para la relación
+use Illuminate\Support\Facades\Storage;
 
 class Comercio extends Model
 {
@@ -21,6 +22,7 @@ class Comercio extends Model
         'direccion',
         'latitud',
         'longitud',
+        'logo',
         'telefono',
         'descripcion',
         'rubro',
@@ -57,6 +59,23 @@ class Comercio extends Model
     public function tieneUbicacion(): bool
     {
         return $this->latitud !== null && $this->longitud !== null;
+    }
+
+    /**
+     * URL pública del logo, o null si el comercio no cargó ninguno.
+     *
+     * Se usa asset() y no Storage::url() a propósito: asset() toma el host y el puerto
+     * de la petición actual (ej: localhost:8000), mientras que Storage::url() depende
+     * de APP_URL y da enlaces rotos si ese valor no coincide con el puerto real.
+     * Uso en las vistas: $comercio->logo_url
+     */
+    public function getLogoUrlAttribute(): ?string
+    {
+        if (!$this->logo || !Storage::disk('public')->exists($this->logo)) {
+            return null;
+        }
+
+        return asset('storage/' . $this->logo);
     }
 
     /**

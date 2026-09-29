@@ -18,7 +18,7 @@
         <!-- ================================== -->
         <!-- === FORMULARIO 1: ACTUALIZAR (PATCH) === -->
         <!-- ================================== -->
-        <form method="POST" action="{{ route('comercio.update') }}">
+        <form method="POST" action="{{ route('comercio.update') }}" enctype="multipart/form-data">
             @csrf
             @method('PATCH')
 
@@ -105,6 +105,8 @@
                 <!-- ============================================= -->
                 <!-- ==== INICIO DE CAMPOS QUE FALTABAN ==== -->
                 <!-- ============================================= -->
+
+                @include('comercios.partials.selector-logo')
 
                 <div class="input-wrapper">
                     <label for="direccion" class="input-label">{{ __('Dirección *') }}</label>

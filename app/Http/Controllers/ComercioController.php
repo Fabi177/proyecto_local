@@ -6,6 +6,7 @@ use App\Models\Comercio;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class ComercioController extends Controller
@@ -79,6 +80,7 @@ class ComercioController extends Controller
             'telefono' => ['nullable', 'string', 'max:50'],
             'descripcion' => ['nullable', 'string'],
             'rubro' => ['required', 'string', 'max:100'],
+            'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'horarios_atencion' => ['nullable', 'string', 'max:255'],
             'dias_no_laborales' => ['nullable', 'string', 'max:255'],
             'formas_pago' => ['nullable', 'string', 'max:255'],
@@ -87,11 +89,17 @@ class ComercioController extends Controller
             'red_instagram' => ['nullable', 'string', 'max:100'],
             'red_facebook' => ['nullable', 'string', 'max:100'],
             'red_whatsapp' => ['nullable', 'string', 'max:50'],
-        ]);
+        ], $this->mensajesLogo());
 
         // 2. PROCESAR LOS CHECKBOXES
         $validatedData['ingreso_discapacitados'] = $request->has('ingreso_discapacitados');
         $validatedData['estacionamiento'] = $request->has('estacionamiento');
+
+        // 2.1 PROCESAR EL LOGO (si se subió uno)
+        unset($validatedData['logo']);
+        if ($request->hasFile('logo')) {
+            $validatedData['logo'] = $request->file('logo')->store('logos', 'public');
+        }
 
         // 3. GUARDAR EL COMERCIO
         $request->user()->comercio()->create($validatedData);
@@ -155,6 +163,7 @@ class ComercioController extends Controller
             'telefono' => ['nullable', 'string', 'max:50'],
             'descripcion' => ['nullable', 'string'],
             'rubro' => ['required', 'string', 'max:100'],
+            'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'horarios_atencion' => ['nullable', 'string', 'max:255'],
             'dias_no_laborales' => ['nullable', 'string', 'max:255'],
             'formas_pago' => ['nullable', 'string', 'max:255'],
@@ -163,11 +172,21 @@ class ComercioController extends Controller
             'red_instagram' => ['nullable', 'string', 'max:100'],
             'red_facebook' => ['nullable', 'string', 'max:100'],
             'red_whatsapp' => ['nullable', 'string', 'max:50'],
-        ]);
+        ], $this->mensajesLogo());
 
         // 2. PROCESAR LOS CHECKBOXES
         $validatedData['ingreso_discapacitados'] = $request->has('ingreso_discapacitados');
         $validatedData['estacionamiento'] = $request->has('estacionamiento');
+
+        // 2.1 PROCESAR EL LOGO: reemplazar, quitar o dejar el que ya tenía
+        unset($validatedData['logo']);
+        if ($request->hasFile('logo')) {
+            $this->borrarLogo($comercio->logo);
+            $validatedData['logo'] = $request->file('logo')->store('logos', 'public');
+        } elseif ($request->boolean('quitar_logo')) {
+            $this->borrarLogo($comercio->logo);
+            $validatedData['logo'] = null;
+        }
 
         // 3. ACTUALIZAR EL COMERCIO
         $comercio->update($validatedData);
@@ -191,10 +210,38 @@ class ComercioController extends Controller
             return redirect()->route('dashboard')->with('status', 'No tienes ningún comercio para eliminar.');
         }
 
-        // Eliminar el comercio
+        // Eliminar el archivo del logo (si tenía) y después el comercio
+        $this->borrarLogo($comercio->logo);
         $comercio->delete();
 
         // Redirigir al dashboard con un mensaje de éxito
         return redirect()->route('dashboard')->with('status', 'Tu comercio ha sido eliminado correctamente.');
+    }
+
+    // -------------------------------------------------------------------
+    // --- AUXILIARES DEL LOGO ---
+    // -------------------------------------------------------------------
+
+    /**
+     * Borra del disco "public" el archivo del logo, si existe.
+     */
+    private function borrarLogo(?string $ruta): void
+    {
+        if ($ruta) {
+            Storage::disk('public')->delete($ruta);
+        }
+    }
+
+    /**
+     * Mensajes de error en español para la validación del logo.
+     */
+    private function mensajesLogo(): array
+    {
+        return [
+            'logo.image' => 'El logo debe ser una imagen.',
+            'logo.mimes' => 'El logo debe ser un archivo JPG, PNG o WEBP.',
+            'logo.max' => 'El logo no puede pesar más de 2 MB.',
+            'logo.uploaded' => 'No se pudo subir el logo. Verificá que no pese más de 2 MB.',
+        ];
     }
 }
