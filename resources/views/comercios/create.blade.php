@@ -116,24 +116,9 @@
                     </div>
 
                     <h4 class="text-lg font-semibold text-gray-800 mt-8">Horarios y Contacto</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                    @include('comercios.partials.selector-horarios')
 
-                        <div class="input-wrapper">
-                            <label for="horarios_atencion" class="input-label">{{ __('Horarios de Atención') }}</label>
-                            <div class="input-field-container">
-                                <svg class="input-icon w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-                                <x-text-input id="horarios_atencion" class="w-full input-field" type="text" name="horarios_atencion" :value="old('horarios_atencion')" placeholder="Ej: Lunes a Viernes de 9 a 18 hs" />
-                            </div>
-                        </div>
-
-                        <div class="input-wrapper">
-                            <label for="dias_no_laborales" class="input-label">{{ __('Días no laborales') }}</label>
-                            <div class="input-field-container">
-                                <svg class="input-icon w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>
-                                <x-text-input id="dias_no_laborales" class="w-full input-field" type="text" name="dias_no_laborales" :value="old('dias_no_laborales')" placeholder="Ej: Sábados y Domingos" />
-                            </div>
-                        </div>
-                    </div>
+                    @include('comercios.partials.selector-dias-no-laborales')
 
                     <div class="input-wrapper">
                         <label for="telefono" class="input-label">{{ __('Teléfono') }}</label>
@@ -146,13 +131,7 @@
 
                     <h4 class="text-lg font-semibold text-gray-800 mt-8">Servicios y Pagos</h4>
 
-                    <div class="input-wrapper">
-                        <label for="formas_pago" class="input-label">{{ __('Formas de pago') }}</label>
-                        <div class="input-field-container">
-                            <svg class="input-icon w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h6m3-3.75l-3 3m0 0l-3-3m3 3v-6m6 3h.008v.008H18v-.008Z" /></svg>
-                            <x-text-input id="formas_pago" class="w-full input-field" type="text" name="formas_pago" :value="old('formas_pago')" placeholder="Ej: Efectivo, Mercado Pago, Tarjeta de Crédito" />
-                        </div>
-                    </div>
+                    @include('comercios.partials.selector-pagos')
 
                     <div class="input-wrapper">
                         <label for="servicios_adicionales" class="input-label">{{ __('Otros servicios que ofrezca') }}</label>

@@ -3,6 +3,7 @@ import './bootstrap';
 import Alpine from 'alpinejs';
 import { registrarComponentesMapa } from './mapa-comercio';
 import { registrarComponenteLogo } from './logo-comercio';
+import { registrarComponentesHorariosPagos } from './horarios-pagos';
 
 window.Alpine = Alpine;
 
@@ -11,5 +12,8 @@ registrarComponentesMapa(Alpine);
 
 // Componente del selector de logo del comercio. También antes de Alpine.start().
 registrarComponenteLogo(Alpine);
+
+// Componentes de horarios de atención, días no laborales y formas de pago. También antes de Alpine.start().
+registrarComponentesHorariosPagos(Alpine);
 
 Alpine.start();

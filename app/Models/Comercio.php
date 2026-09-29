@@ -27,7 +27,10 @@ class Comercio extends Model
         'descripcion',
         'rubro',
         'horarios_atencion',
+        'horarios_config',
         'dias_no_laborales',
+        'dias_cierre',
+        'cierra_feriados',
         'ingreso_discapacitados',
         'estacionamiento',
         'servicios_adicionales',
@@ -48,6 +51,9 @@ class Comercio extends Model
         return [
             'ingreso_discapacitados' => 'boolean',
             'estacionamiento' => 'boolean',
+            'cierra_feriados' => 'boolean',
+            'horarios_config' => 'array',
+            'dias_cierre' => 'array',
             'latitud' => 'float',
             'longitud' => 'float',
         ];

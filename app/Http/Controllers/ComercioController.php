@@ -72,6 +72,7 @@ class ComercioController extends Controller
     public function store(Request $request): RedirectResponse
     {
         // 1. VALIDACIÓN DE DATOS
+        $this->decodificarJsonHorarios($request);
         $validatedData = $request->validate([
             'nombre' => ['required', 'string', 'max:255'],
             'direccion' => ['required', 'string', 'max:255'],
@@ -81,19 +82,31 @@ class ComercioController extends Controller
             'descripcion' => ['nullable', 'string'],
             'rubro' => ['required', 'string', 'max:100'],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-            'horarios_atencion' => ['nullable', 'string', 'max:255'],
-            'dias_no_laborales' => ['nullable', 'string', 'max:255'],
-            'formas_pago' => ['nullable', 'string', 'max:255'],
+            'horarios_atencion' => ['nullable', 'string', 'max:1500'],
+            'dias_no_laborales' => ['nullable', 'string', 'max:3000'],
+            'formas_pago' => ['nullable', 'string', 'max:500'],
+            // Datos estructurados de los selectores de horarios y de fechas de cierre
+            'horarios_config' => ['nullable', 'array', 'size:7'],
+            'horarios_config.*.open' => ['required', 'boolean'],
+            'horarios_config.*.t' => ['present', 'array', 'max:2'],
+            'horarios_config.*.t.*' => ['array', 'size:2'],
+            'horarios_config.*.t.*.*' => ['required', 'date_format:H:i'],
+            'dias_cierre' => ['nullable', 'array', 'max:50'],
+            'dias_cierre.*.a' => ['required', 'date_format:Y-m-d'],
+            'dias_cierre.*.b' => ['nullable', 'date_format:Y-m-d'],
+            'dias_cierre.*.w' => ['nullable', 'string', 'max:40'],
             'servicios_adicionales' => ['nullable', 'string'],
             'sitio_web' => ['nullable', 'string', 'url', 'max:255'],
             'red_instagram' => ['nullable', 'string', 'max:100'],
             'red_facebook' => ['nullable', 'string', 'max:100'],
             'red_whatsapp' => ['nullable', 'string', 'max:50'],
-        ], $this->mensajesLogo());
+        ], array_merge($this->mensajesLogo(), $this->mensajesHorarios()));
 
         // 2. PROCESAR LOS CHECKBOXES
         $validatedData['ingreso_discapacitados'] = $request->has('ingreso_discapacitados');
         $validatedData['estacionamiento'] = $request->has('estacionamiento');
+        $validatedData['cierra_feriados'] = $request->has('cierra_feriados');
+        $validatedData = $this->normalizarHorarios($validatedData);
 
         // 2.1 PROCESAR EL LOGO (si se subió uno)
         unset($validatedData['logo']);
@@ -155,6 +168,7 @@ class ComercioController extends Controller
         }
 
         // 1. VALIDACIÓN DE DATOS
+        $this->decodificarJsonHorarios($request);
         $validatedData = $request->validate([
             'nombre' => ['required', 'string', 'max:255'],
             'direccion' => ['required', 'string', 'max:255'],
@@ -164,19 +178,31 @@ class ComercioController extends Controller
             'descripcion' => ['nullable', 'string'],
             'rubro' => ['required', 'string', 'max:100'],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-            'horarios_atencion' => ['nullable', 'string', 'max:255'],
-            'dias_no_laborales' => ['nullable', 'string', 'max:255'],
-            'formas_pago' => ['nullable', 'string', 'max:255'],
+            'horarios_atencion' => ['nullable', 'string', 'max:1500'],
+            'dias_no_laborales' => ['nullable', 'string', 'max:3000'],
+            'formas_pago' => ['nullable', 'string', 'max:500'],
+            // Datos estructurados de los selectores de horarios y de fechas de cierre
+            'horarios_config' => ['nullable', 'array', 'size:7'],
+            'horarios_config.*.open' => ['required', 'boolean'],
+            'horarios_config.*.t' => ['present', 'array', 'max:2'],
+            'horarios_config.*.t.*' => ['array', 'size:2'],
+            'horarios_config.*.t.*.*' => ['required', 'date_format:H:i'],
+            'dias_cierre' => ['nullable', 'array', 'max:50'],
+            'dias_cierre.*.a' => ['required', 'date_format:Y-m-d'],
+            'dias_cierre.*.b' => ['nullable', 'date_format:Y-m-d'],
+            'dias_cierre.*.w' => ['nullable', 'string', 'max:40'],
             'servicios_adicionales' => ['nullable', 'string'],
             'sitio_web' => ['nullable', 'string', 'url', 'max:255'],
             'red_instagram' => ['nullable', 'string', 'max:100'],
             'red_facebook' => ['nullable', 'string', 'max:100'],
             'red_whatsapp' => ['nullable', 'string', 'max:50'],
-        ], $this->mensajesLogo());
+        ], array_merge($this->mensajesLogo(), $this->mensajesHorarios()));
 
         // 2. PROCESAR LOS CHECKBOXES
         $validatedData['ingreso_discapacitados'] = $request->has('ingreso_discapacitados');
         $validatedData['estacionamiento'] = $request->has('estacionamiento');
+        $validatedData['cierra_feriados'] = $request->has('cierra_feriados');
+        $validatedData = $this->normalizarHorarios($validatedData);
 
         // 2.1 PROCESAR EL LOGO: reemplazar, quitar o dejar el que ya tenía
         unset($validatedData['logo']);
@@ -242,6 +268,79 @@ class ComercioController extends Controller
             'logo.mimes' => 'El logo debe ser un archivo JPG, PNG o WEBP.',
             'logo.max' => 'El logo no puede pesar más de 2 MB.',
             'logo.uploaded' => 'No se pudo subir el logo. Verificá que no pese más de 2 MB.',
+        ];
+    }
+
+    // -------------------------------------------------------------------
+    // --- AUXILIARES DE HORARIOS Y FECHAS DE CIERRE ---
+    // -------------------------------------------------------------------
+
+    /**
+     * Los selectores de horarios y de cierres envían su contenido como un texto JSON en un
+     * campo oculto. Acá lo convertimos en array para poder validarlo con las reglas de arriba.
+     * Si el JSON viene roto, se deja un valor inválido a propósito para que la validación falle.
+     */
+    private function decodificarJsonHorarios(Request $request): void
+    {
+        foreach (['horarios_config', 'dias_cierre'] as $campo) {
+            $crudo = $request->input($campo);
+
+            if (is_string($crudo) && $crudo !== '') {
+                $decodificado = json_decode($crudo, true);
+                $request->merge([$campo => is_array($decodificado) ? $decodificado : 'invalido']);
+            }
+        }
+    }
+
+    /**
+     * Deja los datos estructurados prolijos antes de guardarlos:
+     *  - horarios: "open" como booleano y turnos reindexados;
+     *  - cierres: si "hasta" es anterior a "desde" se intercambian, y si son iguales se descarta "hasta".
+     */
+    private function normalizarHorarios(array $datos): array
+    {
+        if (isset($datos['horarios_config'])) {
+            $datos['horarios_config'] = array_values(array_map(fn ($dia) => [
+                'open' => filter_var($dia['open'], FILTER_VALIDATE_BOOLEAN),
+                't' => array_values(array_map(fn ($turno) => [$turno[0], $turno[1]], $dia['t'] ?? [])),
+            ], $datos['horarios_config']));
+        }
+
+        if (isset($datos['dias_cierre'])) {
+            $datos['dias_cierre'] = array_values(array_map(function ($cierre) {
+                $desde = $cierre['a'];
+                $hasta = $cierre['b'] ?? null;
+
+                if ($hasta !== null && $hasta < $desde) {
+                    [$desde, $hasta] = [$hasta, $desde];
+                }
+                if ($hasta === $desde) {
+                    $hasta = null;
+                }
+
+                return ['a' => $desde, 'b' => $hasta, 'w' => $cierre['w'] ?? null];
+            }, $datos['dias_cierre']));
+        }
+
+        return $datos;
+    }
+
+    /**
+     * Mensajes de error en español para la validación de horarios y fechas de cierre.
+     */
+    private function mensajesHorarios(): array
+    {
+        return [
+            'horarios_config.array' => 'Los horarios de atención no son válidos. Volvé a cargarlos.',
+            'horarios_config.size' => 'Los horarios de atención deben incluir los 7 días de la semana.',
+            'horarios_config.*.t.*.*.required' => 'Completá la hora de apertura y de cierre de cada turno.',
+            'horarios_config.*.t.*.*.date_format' => 'Una de las horas de atención no tiene un formato válido.',
+            'dias_cierre.array' => 'Las fechas de cierre no son válidas. Volvé a cargarlas.',
+            'dias_cierre.max' => 'Podés cargar hasta 50 fechas de cierre.',
+            'dias_cierre.*.a.required' => 'Una de las fechas de cierre no tiene fecha de inicio.',
+            'dias_cierre.*.a.date_format' => 'Una de las fechas de cierre no es válida.',
+            'dias_cierre.*.b.date_format' => 'Una de las fechas de cierre no es válida.',
+            'dias_cierre.*.w.max' => 'El motivo de un cierre no puede superar los 40 caracteres.',
         ];
     }
 }

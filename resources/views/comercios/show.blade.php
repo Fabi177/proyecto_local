@@ -113,11 +113,44 @@
                     @endif
 
                     <!-- Horarios -->
+                    @php
+                        // Fechas de cierre que todavía no pasaron (las vencidas no se muestran al cliente)
+                        $cierresVigentes = collect($comercio->dias_cierre ?? [])
+                            ->filter(fn ($c) => ($c['b'] ?? $c['a']) >= now()->toDateString())
+                            ->values();
+
+                        // Si el comercio usa el selector nuevo, dias_cierre es un array (aunque esté vacío).
+                        // Si es null, es un comercio viejo que solo tiene el texto libre en dias_no_laborales.
+                        $usaSelectorCierres = $comercio->dias_cierre !== null;
+                    @endphp
                     <div class="mt-6 border-t pt-6">
                         <h3 class="text-lg font-semibold text-gray-800 mb-2">Horarios</h3>
                         <div class="text-gray-700">
-                            <p><span class="font-medium">Atención:</span> {{ $comercio->horarios_atencion ?? 'No especificado' }}</p>
-                            <p><span class="font-medium">Días cerrados:</span> {{ $comercio->dias_no_laborales ?? 'No especificado' }}</p>
+                            <p class="font-medium">Atención:</p>
+                            <p class="whitespace-pre-line">{{ $comercio->horarios_atencion ?: 'No especificado' }}</p>
+
+                            <p class="mt-3 font-medium">Días cerrados:</p>
+                            @if ($usaSelectorCierres)
+                                @if ($comercio->cierra_feriados)
+                                    <p>Cerrado los feriados nacionales.</p>
+                                @endif
+                                @foreach ($cierresVigentes as $cierre)
+                                    <p>
+                                        {{ \Carbon\Carbon::parse($cierre['a'])->format('d/m/Y') }}
+                                        @if (!empty($cierre['b']))
+                                            al {{ \Carbon\Carbon::parse($cierre['b'])->format('d/m/Y') }}
+                                        @endif
+                                        @if (!empty($cierre['w']))
+                                            <span class="text-gray-500">({{ $cierre['w'] }})</span>
+                                        @endif
+                                    </p>
+                                @endforeach
+                                @if (!$comercio->cierra_feriados && $cierresVigentes->isEmpty())
+                                    <p>Sin cierres especiales.</p>
+                                @endif
+                            @else
+                                <p class="whitespace-pre-line">{{ $comercio->dias_no_laborales ?: 'No especificado' }}</p>
+                            @endif
                         </div>
                     </div>
 
@@ -128,7 +161,18 @@
                             <!-- Formas de Pago -->
                             <div>
                                 <p class="font-medium text-gray-700">Formas de Pago:</p>
-                                <p class="text-gray-600">{{ $comercio->formas_pago ?? 'No especificado' }}</p>
+                                @php
+                                    $formasPago = array_values(array_filter(array_map('trim', explode(',', $comercio->formas_pago ?? ''))));
+                                @endphp
+                                @if (count($formasPago))
+                                    <div class="mt-1 flex flex-wrap gap-2">
+                                        @foreach ($formasPago as $pago)
+                                            <span class="inline-flex rounded-full bg-sky-100 px-3 py-0.5 text-sm text-sky-800">{{ $pago }}</span>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <p class="text-gray-600">No especificado</p>
+                                @endif
                             </div>
                             <!-- Otros Servicios -->
                             <div>
