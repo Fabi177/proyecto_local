@@ -25,10 +25,22 @@
 
                     <h3 class="text-lg font-semibold text-gray-800 mt-6 mb-2">Ubicación y Contacto</h3>
 
-                    <!-- (Placeholder para el Mapa) -->
-                    <div class="w-full h-40 bg-gray-200 rounded-lg flex items-center justify-center mt-2">
-                        <span class="text-gray-500">(Aquí irá el Mapa)</span>
-                    </div>
+                    <!-- Mapa con la geolocalización del comercio -->
+                    @if ($comercio->tieneUbicacion())
+                        <!-- "relative z-0" evita que los controles del mapa tapen el menú de navegación -->
+                        <div class="relative z-0 w-full h-56 mt-2 rounded-lg overflow-hidden border border-gray-200"
+                             x-data="mapaComercio({ lat: @js($comercio->latitud), lng: @js($comercio->longitud), nombre: @js($comercio->nombre) })"></div>
+
+                        <a href="https://www.google.com/maps/dir/?api=1&amp;destination={{ number_format($comercio->latitud, 7, '.', '') }},{{ number_format($comercio->longitud, 7, '.', '') }}"
+                           target="_blank" rel="noopener"
+                           class="mt-3 flex items-center justify-center w-full px-4 py-2 bg-[var(--light-blue)] text-white text-sm font-bold rounded-lg transition hover:opacity-90">
+                            Cómo llegar
+                        </a>
+                    @else
+                        <div class="w-full h-40 bg-gray-200 rounded-lg flex items-center justify-center mt-2 px-4 text-center">
+                            <span class="text-gray-500">Este comercio todavía no cargó su ubicación en el mapa.</span>
+                        </div>
+                    @endif
 
                     <!-- Dirección -->
                     <div class="flex items-start mt-4">

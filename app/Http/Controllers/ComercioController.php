@@ -74,6 +74,8 @@ class ComercioController extends Controller
         $validatedData = $request->validate([
             'nombre' => ['required', 'string', 'max:255'],
             'direccion' => ['required', 'string', 'max:255'],
+            'latitud' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitud'],
+            'longitud' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitud'],
             'telefono' => ['nullable', 'string', 'max:50'],
             'descripcion' => ['nullable', 'string'],
             'rubro' => ['required', 'string', 'max:100'],
@@ -148,6 +150,8 @@ class ComercioController extends Controller
         $validatedData = $request->validate([
             'nombre' => ['required', 'string', 'max:255'],
             'direccion' => ['required', 'string', 'max:255'],
+            'latitud' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitud'],
+            'longitud' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitud'],
             'telefono' => ['nullable', 'string', 'max:50'],
             'descripcion' => ['nullable', 'string'],
             'rubro' => ['required', 'string', 'max:100'],

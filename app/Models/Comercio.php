@@ -19,6 +19,8 @@ class Comercio extends Model
         'user_id',
         'nombre',
         'direccion',
+        'latitud',
+        'longitud',
         'telefono',
         'descripcion',
         'rubro',
@@ -44,7 +46,17 @@ class Comercio extends Model
         return [
             'ingreso_discapacitados' => 'boolean',
             'estacionamiento' => 'boolean',
+            'latitud' => 'float',
+            'longitud' => 'float',
         ];
+    }
+
+    /**
+     * Indica si el comercio ya tiene su geolocalización cargada.
+     */
+    public function tieneUbicacion(): bool
+    {
+        return $this->latitud !== null && $this->longitud !== null;
     }
 
     /**

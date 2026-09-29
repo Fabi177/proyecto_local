@@ -104,6 +104,8 @@
                         </div>
                     </div>
 
+                    @include('comercios.partials.selector-ubicacion')
+
                     <div class="input-wrapper">
                         <label for="descripcion" class="input-label">{{ __('Descripción (qué hace tu comercio)') }}</label>
                         <div class="input-field-container">
