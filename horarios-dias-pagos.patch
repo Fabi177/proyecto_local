@@ -1,0 +1,1140 @@
+diff --git a/app/Http/Controllers/ComercioController.php b/app/Http/Controllers/ComercioController.php
+index 31c63e9..a2c8698 100644
+--- a/app/Http/Controllers/ComercioController.php
++++ b/app/Http/Controllers/ComercioController.php
+@@ -72,6 +72,7 @@ public function create(): View|RedirectResponse
+     public function store(Request $request): RedirectResponse
+     {
+         // 1. VALIDACIÓN DE DATOS
++        $this->decodificarJsonHorarios($request);
+         $validatedData = $request->validate([
+             'nombre' => ['required', 'string', 'max:255'],
+             'direccion' => ['required', 'string', 'max:255'],
+@@ -81,19 +82,31 @@ public function store(Request $request): RedirectResponse
+             'descripcion' => ['nullable', 'string'],
+             'rubro' => ['required', 'string', 'max:100'],
+             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+-            'horarios_atencion' => ['nullable', 'string', 'max:255'],
+-            'dias_no_laborales' => ['nullable', 'string', 'max:255'],
+-            'formas_pago' => ['nullable', 'string', 'max:255'],
++            'horarios_atencion' => ['nullable', 'string', 'max:1500'],
++            'dias_no_laborales' => ['nullable', 'string', 'max:3000'],
++            'formas_pago' => ['nullable', 'string', 'max:500'],
++            // Datos estructurados de los selectores de horarios y de fechas de cierre
++            'horarios_config' => ['nullable', 'array', 'size:7'],
++            'horarios_config.*.open' => ['required', 'boolean'],
++            'horarios_config.*.t' => ['present', 'array', 'max:2'],
++            'horarios_config.*.t.*' => ['array', 'size:2'],
++            'horarios_config.*.t.*.*' => ['required', 'date_format:H:i'],
++            'dias_cierre' => ['nullable', 'array', 'max:50'],
++            'dias_cierre.*.a' => ['required', 'date_format:Y-m-d'],
++            'dias_cierre.*.b' => ['nullable', 'date_format:Y-m-d'],
++            'dias_cierre.*.w' => ['nullable', 'string', 'max:40'],
+             'servicios_adicionales' => ['nullable', 'string'],
+             'sitio_web' => ['nullable', 'string', 'url', 'max:255'],
+             'red_instagram' => ['nullable', 'string', 'max:100'],
+             'red_facebook' => ['nullable', 'string', 'max:100'],
+             'red_whatsapp' => ['nullable', 'string', 'max:50'],
+-        ], $this->mensajesLogo());
++        ], array_merge($this->mensajesLogo(), $this->mensajesHorarios()));
+ 
+         // 2. PROCESAR LOS CHECKBOXES
+         $validatedData['ingreso_discapacitados'] = $request->has('ingreso_discapacitados');
+         $validatedData['estacionamiento'] = $request->has('estacionamiento');
++        $validatedData['cierra_feriados'] = $request->has('cierra_feriados');
++        $validatedData = $this->normalizarHorarios($validatedData);
+ 
+         // 2.1 PROCESAR EL LOGO (si se subió uno)
+         unset($validatedData['logo']);
+@@ -155,6 +168,7 @@ public function update(Request $request): RedirectResponse
+         }
+ 
+         // 1. VALIDACIÓN DE DATOS
++        $this->decodificarJsonHorarios($request);
+         $validatedData = $request->validate([
+             'nombre' => ['required', 'string', 'max:255'],
+             'direccion' => ['required', 'string', 'max:255'],
+@@ -164,19 +178,31 @@ public function update(Request $request): RedirectResponse
+             'descripcion' => ['nullable', 'string'],
+             'rubro' => ['required', 'string', 'max:100'],
+             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+-            'horarios_atencion' => ['nullable', 'string', 'max:255'],
+-            'dias_no_laborales' => ['nullable', 'string', 'max:255'],
+-            'formas_pago' => ['nullable', 'string', 'max:255'],
++            'horarios_atencion' => ['nullable', 'string', 'max:1500'],
++            'dias_no_laborales' => ['nullable', 'string', 'max:3000'],
++            'formas_pago' => ['nullable', 'string', 'max:500'],
++            // Datos estructurados de los selectores de horarios y de fechas de cierre
++            'horarios_config' => ['nullable', 'array', 'size:7'],
++            'horarios_config.*.open' => ['required', 'boolean'],
++            'horarios_config.*.t' => ['present', 'array', 'max:2'],
++            'horarios_config.*.t.*' => ['array', 'size:2'],
++            'horarios_config.*.t.*.*' => ['required', 'date_format:H:i'],
++            'dias_cierre' => ['nullable', 'array', 'max:50'],
++            'dias_cierre.*.a' => ['required', 'date_format:Y-m-d'],
++            'dias_cierre.*.b' => ['nullable', 'date_format:Y-m-d'],
++            'dias_cierre.*.w' => ['nullable', 'string', 'max:40'],
+             'servicios_adicionales' => ['nullable', 'string'],
+             'sitio_web' => ['nullable', 'string', 'url', 'max:255'],
+             'red_instagram' => ['nullable', 'string', 'max:100'],
+             'red_facebook' => ['nullable', 'string', 'max:100'],
+             'red_whatsapp' => ['nullable', 'string', 'max:50'],
+-        ], $this->mensajesLogo());
++        ], array_merge($this->mensajesLogo(), $this->mensajesHorarios()));
+ 
+         // 2. PROCESAR LOS CHECKBOXES
+         $validatedData['ingreso_discapacitados'] = $request->has('ingreso_discapacitados');
+         $validatedData['estacionamiento'] = $request->has('estacionamiento');
++        $validatedData['cierra_feriados'] = $request->has('cierra_feriados');
++        $validatedData = $this->normalizarHorarios($validatedData);
+ 
+         // 2.1 PROCESAR EL LOGO: reemplazar, quitar o dejar el que ya tenía
+         unset($validatedData['logo']);
+@@ -244,4 +270,77 @@ private function mensajesLogo(): array
+             'logo.uploaded' => 'No se pudo subir el logo. Verificá que no pese más de 2 MB.',
+         ];
+     }
++
++    // -------------------------------------------------------------------
++    // --- AUXILIARES DE HORARIOS Y FECHAS DE CIERRE ---
++    // -------------------------------------------------------------------
++
++    /**
++     * Los selectores de horarios y de cierres envían su contenido como un texto JSON en un
++     * campo oculto. Acá lo convertimos en array para poder validarlo con las reglas de arriba.
++     * Si el JSON viene roto, se deja un valor inválido a propósito para que la validación falle.
++     */
++    private function decodificarJsonHorarios(Request $request): void
++    {
++        foreach (['horarios_config', 'dias_cierre'] as $campo) {
++            $crudo = $request->input($campo);
++
++            if (is_string($crudo) && $crudo !== '') {
++                $decodificado = json_decode($crudo, true);
++                $request->merge([$campo => is_array($decodificado) ? $decodificado : 'invalido']);
++            }
++        }
++    }
++
++    /**
++     * Deja los datos estructurados prolijos antes de guardarlos:
++     *  - horarios: "open" como booleano y turnos reindexados;
++     *  - cierres: si "hasta" es anterior a "desde" se intercambian, y si son iguales se descarta "hasta".
++     */
++    private function normalizarHorarios(array $datos): array
++    {
++        if (isset($datos['horarios_config'])) {
++            $datos['horarios_config'] = array_values(array_map(fn ($dia) => [
++                'open' => filter_var($dia['open'], FILTER_VALIDATE_BOOLEAN),
++                't' => array_values(array_map(fn ($turno) => [$turno[0], $turno[1]], $dia['t'] ?? [])),
++            ], $datos['horarios_config']));
++        }
++
++        if (isset($datos['dias_cierre'])) {
++            $datos['dias_cierre'] = array_values(array_map(function ($cierre) {
++                $desde = $cierre['a'];
++                $hasta = $cierre['b'] ?? null;
++
++                if ($hasta !== null && $hasta < $desde) {
++                    [$desde, $hasta] = [$hasta, $desde];
++                }
++                if ($hasta === $desde) {
++                    $hasta = null;
++                }
++
++                return ['a' => $desde, 'b' => $hasta, 'w' => $cierre['w'] ?? null];
++            }, $datos['dias_cierre']));
++        }
++
++        return $datos;
++    }
++
++    /**
++     * Mensajes de error en español para la validación de horarios y fechas de cierre.
++     */
++    private function mensajesHorarios(): array
++    {
++        return [
++            'horarios_config.array' => 'Los horarios de atención no son válidos. Volvé a cargarlos.',
++            'horarios_config.size' => 'Los horarios de atención deben incluir los 7 días de la semana.',
++            'horarios_config.*.t.*.*.required' => 'Completá la hora de apertura y de cierre de cada turno.',
++            'horarios_config.*.t.*.*.date_format' => 'Una de las horas de atención no tiene un formato válido.',
++            'dias_cierre.array' => 'Las fechas de cierre no son válidas. Volvé a cargarlas.',
++            'dias_cierre.max' => 'Podés cargar hasta 50 fechas de cierre.',
++            'dias_cierre.*.a.required' => 'Una de las fechas de cierre no tiene fecha de inicio.',
++            'dias_cierre.*.a.date_format' => 'Una de las fechas de cierre no es válida.',
++            'dias_cierre.*.b.date_format' => 'Una de las fechas de cierre no es válida.',
++            'dias_cierre.*.w.max' => 'El motivo de un cierre no puede superar los 40 caracteres.',
++        ];
++    }
+ }
+diff --git a/app/Models/Comercio.php b/app/Models/Comercio.php
+index e370b50..220cba8 100644
+--- a/app/Models/Comercio.php
++++ b/app/Models/Comercio.php
+@@ -27,7 +27,10 @@ class Comercio extends Model
+         'descripcion',
+         'rubro',
+         'horarios_atencion',
++        'horarios_config',
+         'dias_no_laborales',
++        'dias_cierre',
++        'cierra_feriados',
+         'ingreso_discapacitados',
+         'estacionamiento',
+         'servicios_adicionales',
+@@ -48,6 +51,9 @@ protected function casts(): array
+         return [
+             'ingreso_discapacitados' => 'boolean',
+             'estacionamiento' => 'boolean',
++            'cierra_feriados' => 'boolean',
++            'horarios_config' => 'array',
++            'dias_cierre' => 'array',
+             'latitud' => 'float',
+             'longitud' => 'float',
+         ];
+diff --git a/database/migrations/2026_09_30_000000_add_horarios_y_cierres_to_comercios_table.php b/database/migrations/2026_09_30_000000_add_horarios_y_cierres_to_comercios_table.php
+new file mode 100644
+index 0000000..04e7409
+--- /dev/null
++++ b/database/migrations/2026_09_30_000000_add_horarios_y_cierres_to_comercios_table.php
+@@ -0,0 +1,51 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    /**
++     * Run the migrations.
++     *
++     * Los textos legibles (horarios_atencion, dias_no_laborales, formas_pago) se siguen guardando
++     * como antes, para mostrarlos en el perfil. Las columnas nuevas guardan la versión ESTRUCTURADA
++     * (JSON) para poder volver a cargar el editor de horarios y de fechas de cierre al editar.
++     */
++    public function up(): void
++    {
++        Schema::table('comercios', function (Blueprint $table) {
++            // Un resumen con 7 días distintos y dos turnos por día supera los 255 caracteres de string().
++            $table->text('horarios_atencion')->nullable()->change();
++            $table->text('dias_no_laborales')->nullable()->change();
++            $table->text('formas_pago')->nullable()->change();
++        });
++
++        Schema::table('comercios', function (Blueprint $table) {
++            // Horario por día: [{"open": true, "t": [["09:00","18:00"]]}, ...] (7 elementos, lunes a domingo)
++            $table->json('horarios_config')->nullable()->after('horarios_atencion');
++            // Fechas puntuales de cierre: [{"a": "2026-12-24", "b": "2026-12-26", "w": "Vacaciones"}, ...]
++            $table->json('dias_cierre')->nullable()->after('dias_no_laborales');
++            // "Cerramos los feriados nacionales"
++            $table->boolean('cierra_feriados')->default(false)->after('dias_cierre');
++        });
++    }
++
++    /**
++     * Reverse the migrations.
++     */
++    public function down(): void
++    {
++        Schema::table('comercios', function (Blueprint $table) {
++            $table->dropColumn(['horarios_config', 'dias_cierre', 'cierra_feriados']);
++        });
++
++        Schema::table('comercios', function (Blueprint $table) {
++            // Ojo: al volver a string(255), MySQL puede cortar los textos que superen ese largo.
++            $table->string('horarios_atencion')->nullable()->change();
++            $table->string('dias_no_laborales')->nullable()->change();
++            $table->string('formas_pago')->nullable()->change();
++        });
++    }
++};
+diff --git a/resources/js/app.js b/resources/js/app.js
+index 243c6d5..b18f06f 100644
+--- a/resources/js/app.js
++++ b/resources/js/app.js
+@@ -3,6 +3,7 @@ import './bootstrap';
+ import Alpine from 'alpinejs';
+ import { registrarComponentesMapa } from './mapa-comercio';
+ import { registrarComponenteLogo } from './logo-comercio';
++import { registrarComponentesHorariosPagos } from './horarios-pagos';
+ 
+ window.Alpine = Alpine;
+ 
+@@ -12,4 +13,7 @@ registrarComponentesMapa(Alpine);
+ // Componente del selector de logo del comercio. También antes de Alpine.start().
+ registrarComponenteLogo(Alpine);
+ 
++// Componentes de horarios de atención, días no laborales y formas de pago. También antes de Alpine.start().
++registrarComponentesHorariosPagos(Alpine);
++
+ Alpine.start();
+diff --git a/resources/js/horarios-pagos.js b/resources/js/horarios-pagos.js
+new file mode 100644
+index 0000000..3acbf37
+--- /dev/null
++++ b/resources/js/horarios-pagos.js
+@@ -0,0 +1,393 @@
++// Componentes Alpine de los apartados "Horarios de atención", "Días no laborales" y "Formas de pago".
++//
++// Funcionan como "selectorLogo" (logo-comercio.js) y "selectorUbicacion" (mapa-comercio.js):
++//  - el comerciante arma todo con controles visuales (interruptores, horas, fechas, botones);
++//  - el resultado viaja en campos ocultos dentro del formulario;
++//  - recién se guarda en el servidor al presionar "Guardar Cambios" / "Registrar".
++//
++// IMPORTANTE: acá no van clases de Tailwind. Tailwind solo escanea resources/views/**/*.blade.php,
++// así que todo el HTML (y sus clases) está en los parciales de resources/views/comercios/partials/.
++
++const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
++const DIAS_CORTOS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
++
++const MAX_CIERRES = 50; // Debe coincidir con 'max:50' de dias_cierre en ComercioController
++const REGEX_HORA = /^\d{2}:\d{2}$/;
++const REGEX_FECHA = /^\d{4}-\d{2}-\d{2}$/;
++
++const esVerdadero = (v) => v === true || v === 1 || v === '1' || v === 'true';
++
++// -------------------------------------------------------------------
++// Horarios de atención
++// -------------------------------------------------------------------
++
++// Lunes a viernes 9 a 18, sábado 9 a 13, domingo cerrado (los mismos valores de la maqueta).
++const horarioPorDefecto = () =>
++    DIAS.map((_, i) => ({ open: i < 6, t: [i < 5 ? ['09:00', '18:00'] : ['09:00', '13:00']] }));
++
++const horarioCerrado = () => DIAS.map(() => ({ open: false, t: [['09:00', '13:00']] }));
++
++/**
++ * Valida y copia una configuración guardada (o devuelta por old() tras un error de validación).
++ * Devuelve null si no tiene la forma esperada, para que el componente use un valor seguro.
++ */
++function sanearHorarios(config) {
++    if (!Array.isArray(config) || config.length !== 7) return null;
++
++    const resultado = [];
++    for (const dia of config) {
++        if (!dia || typeof dia !== 'object' || !Array.isArray(dia.t)) return null;
++
++        const turnos = dia.t
++            .filter((t) => Array.isArray(t) && REGEX_HORA.test(t[0] ?? '') && REGEX_HORA.test(t[1] ?? ''))
++            .slice(0, 2)
++            .map((t) => [t[0], t[1]]);
++
++        resultado.push({ open: esVerdadero(dia.open), t: turnos.length ? turnos : [['09:00', '13:00']] });
++    }
++    return resultado;
++}
++
++const turnoCompleto = (t) => Boolean(t[0]) && Boolean(t[1]);
++
++export function registrarComponentesHorarios(Alpine) {
++    /**
++     * Horarios de atención: un interruptor por día, hasta 2 turnos por día y atajos rápidos.
++     *
++     * Parámetros:
++     *  - config: horarios guardados (array de 7 días) o null;
++     *  - legacy: el texto libre que tenía el comercio antes de existir este selector (o null);
++     *  - esNuevo: true en la pantalla de registro (arranca con horarios de ejemplo).
++     *    En edición, si el comercio solo tiene texto libre, arranca con todo cerrado para no pisar
++     *    ese texto con valores inventados, y se lo muestra como referencia.
++     */
++    Alpine.data('horariosAtencion', (inicial = {}) => {
++        const guardado = sanearHorarios(inicial.config);
++
++        return {
++            dias: guardado ?? (inicial.esNuevo ? horarioPorDefecto() : horarioCerrado()),
++            textoAnterior: guardado ? null : inicial.legacy ?? null,
++            nombres: DIAS,
++
++            alternar(i) {
++                this.dias[i].open = !this.dias[i].open;
++            },
++
++            agregarTurno(i) {
++                if (this.dias[i].t.length < 2) this.dias[i].t.push(['16:00', '20:00']);
++            },
++
++            quitarTurno(i, j) {
++                if (j > 0) this.dias[i].t.splice(j, 1);
++            },
++
++            copiarATodos(i) {
++                const origen = this.dias[i];
++                this.dias = this.dias.map(() => ({ open: origen.open, t: origen.t.map((t) => [...t]) }));
++            },
++
++            preset(nombre) {
++                this.textoAnterior = null;
++                const base = horarioCerrado();
++                if (nombre === 'lv') {
++                    base.forEach((d, i) => {
++                        if (i < 5) {
++                            d.open = true;
++                            d.t = [['09:00', '18:00']];
++                        }
++                    });
++                } else if (nombre === 'todos') {
++                    base.forEach((d) => {
++                        d.open = true;
++                        d.t = [['09:00', '21:00']];
++                    });
++                } else if (nombre === '24') {
++                    base.forEach((d) => {
++                        d.open = true;
++                        d.t = [['00:00', '23:59']];
++                    });
++                }
++                this.dias = base;
++            },
++
++            // true mientras el comercio solo tenga su texto libre anterior y no se haya configurado nada nuevo.
++            // En ese caso los campos ocultos se deshabilitan (no viajan) y el servidor no toca lo que ya había.
++            get conservarAnterior() {
++                return this.textoAnterior !== null && this.resumenLineas.length === 0;
++            },
++
++            // true si algún día abierto tiene un turno con la hora de apertura o de cierre vacía
++            diaConHorasVacias(i) {
++                const d = this.dias[i];
++                return d.open && d.t.some((t) => !turnoCompleto(t));
++            },
++
++            // Valor del campo oculto "horarios_config": se descartan los turnos incompletos.
++            get json() {
++                return JSON.stringify(
++                    this.dias.map((d) => ({ open: d.open, t: d.t.filter(turnoCompleto).map((t) => [t[0], t[1]]) })),
++                );
++            },
++
++            // Líneas del resumen, agrupando días seguidos con el mismo horario ("Lun a Vie: 09:00 a 18:00 hs")
++            get resumenLineas() {
++                const clave = (d) => {
++                    if (!d.open) return 'Cerrado';
++                    const turnos = d.t.filter(turnoCompleto);
++                    return turnos.length ? turnos.map((t) => `${t[0]} a ${t[1]}`).join(' y ') + ' hs' : 'Cerrado';
++                };
++
++                const todo24 = this.dias.every(
++                    (d) => d.open && d.t.length === 1 && d.t[0][0] === '00:00' && d.t[0][1] === '23:59',
++                );
++                if (todo24) return ['Abierto las 24 hs, todos los días.'];
++
++                if (this.dias.every((d) => clave(d) === 'Cerrado')) return [];
++
++                const lineas = [];
++                let inicio = 0;
++                for (let i = 1; i <= 7; i++) {
++                    if (i === 7 || clave(this.dias[i]) !== clave(this.dias[inicio])) {
++                        const cantidad = i - inicio;
++                        const rotulo =
++                            cantidad === 1
++                                ? DIAS_CORTOS[inicio]
++                                : cantidad === 2
++                                  ? `${DIAS_CORTOS[inicio]} y ${DIAS_CORTOS[i - 1]}`
++                                  : `${DIAS_CORTOS[inicio]} a ${DIAS_CORTOS[i - 1]}`;
++                        lineas.push(`${rotulo}: ${clave(this.dias[inicio])}`);
++                        inicio = i;
++                    }
++                }
++                return lineas;
++            },
++
++            // Valor del campo oculto "horarios_atencion" (texto que ve el cliente en el perfil)
++            get resumenTexto() {
++                return this.resumenLineas.join('\n');
++            },
++        };
++    });
++}
++
++// -------------------------------------------------------------------
++// Días no laborales (fechas puntuales de cierre)
++// -------------------------------------------------------------------
++
++const formatoFecha = (fecha) => fecha.split('-').reverse().join('/'); // 2026-12-24 -> 24/12/2026
++
++const rangoCierre = (c) => (c.b && c.b !== c.a ? `${formatoFecha(c.a)} al ${formatoFecha(c.b)}` : formatoFecha(c.a));
++
++function sanearCierres(lista) {
++    if (!Array.isArray(lista)) return [];
++
++    return lista
++        .filter((c) => c && REGEX_FECHA.test(c.a ?? ''))
++        .slice(0, MAX_CIERRES)
++        .map((c) => ({
++            a: c.a,
++            b: REGEX_FECHA.test(c.b ?? '') && c.b > c.a ? c.b : null,
++            w: typeof c.w === 'string' ? c.w.slice(0, 40) : '',
++        }))
++        .sort((x, y) => (x.a < y.a ? -1 : x.a > y.a ? 1 : 0));
++}
++
++export function registrarComponenteDiasNoLaborales(Alpine) {
++    /**
++     * Fechas de cierre (vacaciones, feriados puente, inventario) + "Cerramos los feriados nacionales".
++     *
++     * Parámetros:
++     *  - cierres: fechas guardadas o null;
++     *  - feriados: valor del checkbox de feriados;
++     *  - legacy: texto libre anterior del comercio (o null) para mostrarlo como referencia.
++     */
++    Alpine.data('diasNoLaborales', (inicial = {}) => ({
++        cierres: sanearCierres(inicial.cierres),
++        feriados: esVerdadero(inicial.feriados),
++        textoAnterior: Array.isArray(inicial.cierres) ? null : inicial.legacy ?? null,
++        desde: '',
++        hasta: '',
++        motivo: '',
++        mensaje: '',
++
++        agregar() {
++            this.mensaje = '';
++
++            if (!this.desde) {
++                this.mensaje = 'Elegí al menos la fecha "Desde".';
++                return;
++            }
++            if (this.hasta && this.hasta < this.desde) {
++                this.mensaje = '"Hasta" no puede ser anterior a "Desde".';
++                return;
++            }
++            if (this.cierres.length >= MAX_CIERRES) {
++                this.mensaje = `Podés cargar hasta ${MAX_CIERRES} fechas de cierre.`;
++                return;
++            }
++
++            this.cierres.push({
++                a: this.desde,
++                b: this.hasta && this.hasta !== this.desde ? this.hasta : null,
++                w: this.motivo.trim().slice(0, 40),
++            });
++            this.cierres.sort((x, y) => (x.a < y.a ? -1 : x.a > y.a ? 1 : 0));
++            this.desde = this.hasta = this.motivo = '';
++        },
++
++        quitar(i) {
++            this.cierres.splice(i, 1);
++        },
++
++        rango(c) {
++            return rangoCierre(c);
++        },
++
++        // true mientras el comercio solo tenga su texto libre anterior y no se haya cargado nada nuevo.
++        // En ese caso los campos ocultos se deshabilitan (no viajan) y el servidor no toca lo que ya había.
++        get conservarAnterior() {
++            return this.textoAnterior !== null && this.resumenLineas.length === 0;
++        },
++
++        // Valor del campo oculto "dias_cierre"
++        get json() {
++            return JSON.stringify(this.cierres);
++        },
++
++        // Líneas del resumen (también es el valor del campo oculto "dias_no_laborales")
++        get resumenLineas() {
++            const lineas = [];
++            if (this.feriados) lineas.push('Cerrado los feriados nacionales.');
++            if (this.cierres.length) {
++                const detalle = this.cierres.map((c) => rangoCierre(c) + (c.w ? ` (${c.w})` : '')).join(', ');
++                lineas.push(`Cierres: ${detalle}.`);
++            }
++            return lineas;
++        },
++
++        get resumenTexto() {
++            return this.resumenLineas.join('\n');
++        },
++    }));
++}
++
++// -------------------------------------------------------------------
++// Formas de pago
++// -------------------------------------------------------------------
++
++const PAGOS_BASE = [
++    ['Efectivo', '💵'],
++    ['Tarjeta de débito', '💳'],
++    ['Tarjeta de crédito', '💳'],
++    ['Transferencia', '🏦'],
++    ['Mercado Pago', '📱'],
++    ['Cuenta DNI', '📱'],
++    ['MODO', '📱'],
++    ['Ualá', '📱'],
++    ['QR', '🔳'],
++];
++
++const MAX_PAGOS_PERSONALIZADOS = 15;
++const MAX_LARGO_PAGO = 30;
++
++export function registrarComponenteFormasPago(Alpine) {
++    /**
++     * Formas de pago: botones para las más comunes y un campo para agregar otras.
++     * Se guardan en "formas_pago" como texto separado por comas ("Efectivo, MODO, Naranja X"),
++     * que es el mismo formato que ya usaba el campo de texto libre, así que los comercios
++     * existentes se cargan sin problema.
++     *
++     * Parámetro: guardadas = el texto guardado en la base (o null).
++     */
++    Alpine.data('formasPago', (inicial = {}) => {
++        const base = PAGOS_BASE.map((p) => p[0]);
++        const guardadas = String(inicial.guardadas ?? '')
++            .split(',')
++            .map((n) => n.replace(/\s+/g, ' ').trim())
++            .filter(Boolean);
++
++        const seleccion = [];
++        const personalizadas = [];
++        for (const nombre of guardadas) {
++            const existente = [...base, ...personalizadas].find((n) => n.toLowerCase() === nombre.toLowerCase());
++            if (existente) {
++                if (!seleccion.includes(existente)) seleccion.push(existente);
++            } else {
++                personalizadas.push(nombre.slice(0, MAX_LARGO_PAGO));
++                seleccion.push(personalizadas[personalizadas.length - 1]);
++            }
++        }
++
++        return {
++            base: PAGOS_BASE,
++            seleccion,
++            personalizadas,
++            nuevo: '',
++            mensaje: '',
++
++            estaElegido(nombre) {
++                return this.seleccion.includes(nombre);
++            },
++
++            alternar(nombre) {
++                this.seleccion = this.estaElegido(nombre)
++                    ? this.seleccion.filter((n) => n !== nombre)
++                    : [...this.seleccion, nombre];
++            },
++
++            // Acepta varios nombres separados por coma ("Naranja X, Cheque")
++            agregar() {
++                this.mensaje = '';
++                const nombres = this.nuevo
++                    .split(',')
++                    .map((n) => n.replace(/\s+/g, ' ').trim().slice(0, MAX_LARGO_PAGO))
++                    .filter(Boolean);
++                if (!nombres.length) return;
++
++                const yaEstaban = [];
++                for (const nombre of nombres) {
++                    const existente = [...PAGOS_BASE.map((p) => p[0]), ...this.personalizadas].find(
++                        (n) => n.toLowerCase() === nombre.toLowerCase(),
++                    );
++                    if (existente) {
++                        if (!this.estaElegido(existente)) this.seleccion.push(existente);
++                        yaEstaban.push(existente);
++                    } else if (this.personalizadas.length >= MAX_PAGOS_PERSONALIZADOS) {
++                        this.mensaje = `Podés agregar hasta ${MAX_PAGOS_PERSONALIZADOS} formas de pago propias.`;
++                        break;
++                    } else {
++                        this.personalizadas.push(nombre);
++                        this.seleccion.push(nombre);
++                    }
++                }
++
++                if (yaEstaban.length && !this.mensaje) {
++                    this.mensaje = `"${yaEstaban.join('", "')}" ya estaba en la lista: la dejé seleccionada.`;
++                }
++                this.nuevo = '';
++            },
++
++            quitarPersonalizada(nombre) {
++                this.personalizadas = this.personalizadas.filter((n) => n !== nombre);
++                this.seleccion = this.seleccion.filter((n) => n !== nombre);
++            },
++
++            // Elegidas, en el orden en que se muestran (primero las comunes, después las propias)
++            get elegidas() {
++                return [...PAGOS_BASE.map((p) => p[0]), ...this.personalizadas].filter((n) => this.seleccion.includes(n));
++            },
++
++            // Valor del campo oculto "formas_pago"
++            get texto() {
++                return this.elegidas.join(', ');
++            },
++        };
++    });
++}
++
++// Registra los tres componentes. Se llama desde app.js antes de Alpine.start().
++export function registrarComponentesHorariosPagos(Alpine) {
++    registrarComponentesHorarios(Alpine);
++    registrarComponenteDiasNoLaborales(Alpine);
++    registrarComponenteFormasPago(Alpine);
++}
+diff --git a/resources/views/comercios/create.blade.php b/resources/views/comercios/create.blade.php
+index 0c353e5..68331f4 100644
+--- a/resources/views/comercios/create.blade.php
++++ b/resources/views/comercios/create.blade.php
+@@ -116,24 +116,9 @@
+                     </div>
+ 
+                     <h4 class="text-lg font-semibold text-gray-800 mt-8">Horarios y Contacto</h4>
+-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
++                    @include('comercios.partials.selector-horarios')
+ 
+-                        <div class="input-wrapper">
+-                            <label for="horarios_atencion" class="input-label">{{ __('Horarios de Atención') }}</label>
+-                            <div class="input-field-container">
+-                                <svg class="input-icon w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+-                                <x-text-input id="horarios_atencion" class="w-full input-field" type="text" name="horarios_atencion" :value="old('horarios_atencion')" placeholder="Ej: Lunes a Viernes de 9 a 18 hs" />
+-                            </div>
+-                        </div>
+-
+-                        <div class="input-wrapper">
+-                            <label for="dias_no_laborales" class="input-label">{{ __('Días no laborales') }}</label>
+-                            <div class="input-field-container">
+-                                <svg class="input-icon w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>
+-                                <x-text-input id="dias_no_laborales" class="w-full input-field" type="text" name="dias_no_laborales" :value="old('dias_no_laborales')" placeholder="Ej: Sábados y Domingos" />
+-                            </div>
+-                        </div>
+-                    </div>
++                    @include('comercios.partials.selector-dias-no-laborales')
+ 
+                     <div class="input-wrapper">
+                         <label for="telefono" class="input-label">{{ __('Teléfono') }}</label>
+@@ -146,13 +131,7 @@
+ 
+                     <h4 class="text-lg font-semibold text-gray-800 mt-8">Servicios y Pagos</h4>
+ 
+-                    <div class="input-wrapper">
+-                        <label for="formas_pago" class="input-label">{{ __('Formas de pago') }}</label>
+-                        <div class="input-field-container">
+-                            <svg class="input-icon w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h6m3-3.75l-3 3m0 0l-3-3m3 3v-6m6 3h.008v.008H18v-.008Z" /></svg>
+-                            <x-text-input id="formas_pago" class="w-full input-field" type="text" name="formas_pago" :value="old('formas_pago')" placeholder="Ej: Efectivo, Mercado Pago, Tarjeta de Crédito" />
+-                        </div>
+-                    </div>
++                    @include('comercios.partials.selector-pagos')
+ 
+                     <div class="input-wrapper">
+                         <label for="servicios_adicionales" class="input-label">{{ __('Otros servicios que ofrezca') }}</label>
+diff --git a/resources/views/comercios/edit.blade.php b/resources/views/comercios/edit.blade.php
+index 6f218b4..44d3183 100644
+--- a/resources/views/comercios/edit.blade.php
++++ b/resources/views/comercios/edit.blade.php
+@@ -126,24 +126,10 @@
+                 </div>
+ 
+                 <h4 class="text-lg font-semibold text-gray-800 mt-8">Horarios y Contacto</h4>
+-                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
++                @include('comercios.partials.selector-horarios')
+ 
+-                    <div class="input-wrapper">
+-                        <label for="horarios_atencion" class="input-label">{{ __('Horarios de Atención') }}</label>
+-                        <div class="input-field-container">
+-                            <svg class="input-icon w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+-                            <x-text-input id="horarios_atencion" class="w-full input-field" type="text" name="horarios_atencion" :value="old('horarios_atencion', $comercio->horarios_atencion)" placeholder="Ej: Lunes a Viernes de 9 a 18 hs" />
+-                        </div>
+-                    </div>
++                @include('comercios.partials.selector-dias-no-laborales')
+ 
+-                    <div class="input-wrapper">
+-                        <label for="dias_no_laborales" class="input-label">{{ __('Días no laborales') }}</label>
+-                        <div class="input-field-container">
+-                            <svg class="input-icon w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>
+-                            <x-text-input id="dias_no_laborales" class="w-full input-field" type="text" name="dias_no_laborales" :value="old('dias_no_laborales', $comercio->dias_no_laborales)" placeholder="Ej: Sábados y Domingos" />
+-                        </div>
+-                    </div>
+-                </div>
+ 
+                 <div class="input-wrapper">
+                     <label for="telefono" class="input-label">{{ __('Teléfono') }}</label>
+@@ -156,13 +142,7 @@
+ 
+                 <h4 class="text-lg font-semibold text-gray-800 mt-8">Servicios y Pagos</h4>
+ 
+-                <div class="input-wrapper">
+-                    <label for="formas_pago" class="input-label">{{ __('Formas de pago') }}</label>
+-                    <div class="input-field-container">
+-                        <svg class="input-icon w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h6m3-3.75l-3 3m0 0l-3-3m3 3v-6m6 3h.008v.008H18v-.008Z" /></svg>
+-                        <x-text-input id="formas_pago" class="w-full input-field" type="text" name="formas_pago" :value="old('formas_pago', $comercio->formas_pago)" placeholder="Ej: Efectivo, Mercado Pago, Tarjeta de Crédito" />
+-                    </div>
+-                </div>
++                @include('comercios.partials.selector-pagos')
+ 
+                 <div class="input-wrapper">
+                     <label for="servicios_adicionales" class="input-label">{{ __('Otros servicios que ofrezca') }}</label>
+diff --git a/resources/views/comercios/partials/selector-dias-no-laborales.blade.php b/resources/views/comercios/partials/selector-dias-no-laborales.blade.php
+new file mode 100644
+index 0000000..28cc3d5
+--- /dev/null
++++ b/resources/views/comercios/partials/selector-dias-no-laborales.blade.php
+@@ -0,0 +1,100 @@
++{{--
++    Selector de días no laborales: fechas puntuales de cierre + "Cerramos los feriados nacionales".
++
++    Se incluye en comercios/create y comercios/edit, DENTRO del <form>.
++    La lógica está en resources/js/horarios-pagos.js (componente Alpine "diasNoLaborales").
++
++    Campos que viajan en el formulario:
++      - dias_cierre       -> (oculto) JSON con las fechas cargadas
++      - dias_no_laborales -> (oculto) texto resumen que ve el cliente
++      - cierra_feriados   -> checkbox real (llega solo si está tildado, igual que ingreso_discapacitados)
++    Los campos date/text de "Agregar" NO tienen "name": no viajan.
++    Todos los <button> llevan type="button" y Enter dentro de los campos agrega la fecha (no envía el formulario).
++--}}
++@php
++    $cierresIniciales = old('dias_cierre', isset($comercio) ? $comercio->dias_cierre : null);
++
++    // Tras un error de validación, un checkbox destildado no aparece en old(): por eso se mira si hubo old input.
++    $feriadosInicial = session()->hasOldInput()
++        ? (bool) old('cierra_feriados')
++        : (isset($comercio) ? (bool) $comercio->cierra_feriados : true);
++@endphp
++
++<div class="input-wrapper"
++     x-data="diasNoLaborales({
++        cierres: @js($cierresIniciales),
++        feriados: @js($feriadosInicial),
++        legacy: @js(isset($comercio) ? $comercio->dias_no_laborales : null),
++     })">
++
++    <span class="input-label">{{ __('Días no laborales') }}</span>
++    <p class="mt-1 text-sm text-gray-500">
++        Los días de la semana que cerrás ya se marcan en los horarios. Acá cargá fechas puntuales:
++        vacaciones, feriados puente, cierres por inventario.
++    </p>
++
++    {{-- Campos ocultos. Si solo existe el texto libre anterior, se deshabilitan para no pisarlo. --}}
++    <input type="hidden" name="dias_cierre" :value="json" :disabled="conservarAnterior">
++    <input type="hidden" name="dias_no_laborales" :value="resumenTexto" :disabled="conservarAnterior">
++
++    {{-- Aviso para comercios que ya tenían los días escritos a mano --}}
++    <p class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
++       x-show="textoAnterior" style="display: none;">
++        Tus días no laborales actuales están guardados como texto:
++        <span class="font-semibold whitespace-pre-line" x-text="textoAnterior"></span><br>
++        Cargá las fechas acá abajo para reemplazarlos. Mientras no cargues nada, se mantienen como están.
++    </p>
++
++    {{-- Formulario para agregar una fecha o un rango --}}
++    <div class="mt-3 grid grid-cols-1 sm:grid-cols-[auto_auto_1fr_auto] gap-3 items-end">
++        <div>
++            <label for="cierre-desde" class="block text-xs text-gray-500 mb-1">Desde</label>
++            <input id="cierre-desde" type="date" x-model="desde" x-on:keydown.enter.prevent="agregar()"
++                   class="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-[var(--primary-green)] focus:ring-[var(--primary-green)]">
++        </div>
++        <div>
++            <label for="cierre-hasta" class="block text-xs text-gray-500 mb-1">Hasta (opcional)</label>
++            <input id="cierre-hasta" type="date" x-model="hasta" x-on:keydown.enter.prevent="agregar()"
++                   class="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-[var(--primary-green)] focus:ring-[var(--primary-green)]">
++        </div>
++        <div>
++            <label for="cierre-motivo" class="block text-xs text-gray-500 mb-1">Motivo (opcional)</label>
++            <input id="cierre-motivo" type="text" x-model="motivo" x-on:keydown.enter.prevent="agregar()"
++                   maxlength="40" placeholder="Ej: Vacaciones"
++                   class="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-[var(--primary-green)] focus:ring-[var(--primary-green)]">
++        </div>
++        <button type="button" x-on:click="agregar()"
++                class="px-4 py-2 bg-[var(--primary-green)] text-white text-sm font-semibold rounded-lg transition hover:bg-green-600">
++            Agregar
++        </button>
++    </div>
++
++    <p class="mt-2 text-sm text-red-600" x-show="mensaje" x-text="mensaje" style="display: none;"></p>
++
++    {{-- Fechas cargadas --}}
++    <div class="mt-3 flex flex-wrap gap-2">
++        <template x-for="(c, i) in cierres" :key="c.a + '-' + i">
++            <span class="inline-flex items-center gap-1 rounded-full border border-[var(--primary-green)] bg-green-50 py-1 pl-3 pr-1 text-sm text-green-800">
++                <span x-text="rango(c) + (c.w ? ' · ' + c.w : '')"></span>
++                <button type="button" x-on:click="quitar(i)" aria-label="Quitar esta fecha"
++                        class="px-2 text-base leading-none hover:text-red-600">×</button>
++            </span>
++        </template>
++        <span class="text-sm text-gray-500" x-show="cierres.length === 0" style="display: none;">No cargaste ninguna fecha todavía.</span>
++    </div>
++
++    <label class="mt-4 flex items-center gap-2 text-sm text-gray-700">
++        <input type="checkbox" name="cierra_feriados" value="1" x-model="feriados"
++               class="rounded border-gray-300 text-[var(--primary-green)] shadow-sm focus:ring-[var(--primary-green)]">
++        Cerramos los feriados nacionales
++    </label>
++
++    {{-- Vista previa: cómo lo verá el cliente --}}
++    <div class="mt-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3 text-sm text-gray-700">
++        <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Así lo verá el cliente</span>
++        <template x-for="linea in resumenLineas" :key="linea">
++            <p x-text="linea"></p>
++        </template>
++        <p class="text-gray-500" x-show="resumenLineas.length === 0" style="display: none;">Sin cierres especiales.</p>
++    </div>
++</div>
+diff --git a/resources/views/comercios/partials/selector-horarios.blade.php b/resources/views/comercios/partials/selector-horarios.blade.php
+new file mode 100644
+index 0000000..4e73cdc
+--- /dev/null
++++ b/resources/views/comercios/partials/selector-horarios.blade.php
+@@ -0,0 +1,117 @@
++{{--
++    Selector de horarios de atención.
++
++    Se incluye en comercios/create y comercios/edit, DENTRO del <form>.
++    La lógica está en resources/js/horarios-pagos.js (componente Alpine "horariosAtencion").
++
++    Campos ocultos que viajan en el formulario:
++      - horarios_config   -> JSON con los 7 días (para volver a cargar el editor al editar)
++      - horarios_atencion -> texto resumen que ve el cliente en el perfil ("Lun a Vie: 09:00 a 18:00 hs")
++    Los campos date/time de este bloque NO tienen "name": no viajan, solo arman el JSON y el resumen.
++    Todos los <button> llevan type="button" para que no envíen el formulario al presionarlos.
++--}}
++@php
++    $configHorarios = old('horarios_config', isset($comercio) ? $comercio->horarios_config : null);
++@endphp
++
++<div class="input-wrapper"
++     x-data="horariosAtencion({
++        config: @js($configHorarios),
++        legacy: @js(isset($comercio) ? $comercio->horarios_atencion : null),
++        esNuevo: @js(!isset($comercio)),
++     })">
++
++    <span class="input-label">{{ __('Horarios de atención') }}</span>
++    <p class="mt-1 text-sm text-gray-500">
++        Activá los días que abrís y elegí desde y hasta qué hora. Si cerrás al mediodía, agregá un segundo turno.
++    </p>
++
++    {{-- Campos que viajan en el formulario. Si solo existe el texto libre anterior, se deshabilitan para no pisarlo. --}}
++    <input type="hidden" name="horarios_config" :value="json" :disabled="conservarAnterior">
++    <input type="hidden" name="horarios_atencion" :value="resumenTexto" :disabled="conservarAnterior">
++
++    {{-- Aviso para comercios que ya tenían un horario escrito a mano --}}
++    <p class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
++       x-show="textoAnterior" style="display: none;">
++        Tu horario actual está guardado como texto:
++        <span class="font-semibold whitespace-pre-line" x-text="textoAnterior"></span><br>
++        Configurá los días acá abajo para reemplazarlo. Mientras no cargues nada, se mantiene como está.
++    </p>
++
++    {{-- Atajos --}}
++    <div class="mt-3 flex flex-wrap gap-2">
++        <button type="button" x-on:click="preset('lv')"
++                class="px-3 py-1.5 text-sm font-semibold text-gray-700 bg-gray-50 border border-gray-300 rounded-lg transition hover:border-[var(--primary-green)]">Lun a Vie 9 a 18</button>
++        <button type="button" x-on:click="preset('todos')"
++                class="px-3 py-1.5 text-sm font-semibold text-gray-700 bg-gray-50 border border-gray-300 rounded-lg transition hover:border-[var(--primary-green)]">Todos los días 9 a 21</button>
++        <button type="button" x-on:click="preset('24')"
++                class="px-3 py-1.5 text-sm font-semibold text-gray-700 bg-gray-50 border border-gray-300 rounded-lg transition hover:border-[var(--primary-green)]">24 hs</button>
++        <button type="button" x-on:click="preset('limpiar')"
++                class="px-3 py-1.5 text-sm font-semibold text-gray-700 bg-gray-50 border border-gray-300 rounded-lg transition hover:border-[var(--primary-green)]">Limpiar</button>
++    </div>
++
++    {{-- Un renglón por día --}}
++    <div class="mt-3 border-y border-gray-200 divide-y divide-gray-200">
++        <template x-for="(d, i) in dias" :key="i">
++            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
++                <span class="w-24 font-semibold text-gray-800" x-text="nombres[i]"></span>
++
++                {{-- Interruptor abierto / cerrado --}}
++                <button type="button" role="switch"
++                        :aria-checked="d.open"
++                        :aria-label="nombres[i] + ' abierto'"
++                        x-on:click="alternar(i)"
++                        class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition focus:outline-none focus:ring-2 focus:ring-[var(--primary-green)] focus:ring-offset-2"
++                        :class="d.open ? 'bg-[var(--primary-green)]' : 'bg-gray-300'">
++                    <span class="inline-block h-5 w-5 transform rounded-full bg-white shadow transition"
++                          :class="d.open ? 'translate-x-5' : 'translate-x-0.5'"></span>
++                </button>
++
++                {{-- Turnos --}}
++                <div class="flex-1 min-w-[220px]">
++                    <template x-if="!d.open">
++                        <span class="italic text-gray-500">Cerrado</span>
++                    </template>
++
++                    <template x-if="d.open">
++                        <div class="space-y-2">
++                            <template x-for="(t, j) in d.t" :key="j">
++                                <div class="flex flex-wrap items-center gap-2">
++                                    <input type="time" x-model="t[0]" aria-label="Hora de apertura"
++                                           x-on:keydown.enter.prevent
++                                           class="rounded-md border-gray-300 text-sm shadow-sm focus:border-[var(--primary-green)] focus:ring-[var(--primary-green)]">
++                                    <span class="text-gray-500">a</span>
++                                    <input type="time" x-model="t[1]" aria-label="Hora de cierre"
++                                           x-on:keydown.enter.prevent
++                                           class="rounded-md border-gray-300 text-sm shadow-sm focus:border-[var(--primary-green)] focus:ring-[var(--primary-green)]">
++                                    <button type="button" x-show="j > 0" x-on:click="quitarTurno(i, j)"
++                                            class="text-sm font-medium text-red-600 hover:text-red-800 hover:underline">Quitar turno</button>
++                                </div>
++                            </template>
++                            <p class="text-sm text-red-600" x-show="diaConHorasVacias(i)" style="display: none;">
++                                Completá la hora de apertura y de cierre. Los turnos incompletos no se guardan.
++                            </p>
++                        </div>
++                    </template>
++                </div>
++
++                {{-- Acciones del día --}}
++                <div class="ml-auto flex flex-wrap gap-3 text-sm" x-show="d.open" style="display: none;">
++                    <button type="button" x-show="d.t.length < 2" x-on:click="agregarTurno(i)"
++                            class="font-medium text-[var(--light-blue)] hover:underline">+ Segundo turno</button>
++                    <button type="button" x-on:click="copiarATodos(i)"
++                            class="font-medium text-[var(--light-blue)] hover:underline">Copiar a todos</button>
++                </div>
++            </div>
++        </template>
++    </div>
++
++    {{-- Vista previa: cómo lo verá el cliente --}}
++    <div class="mt-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3 text-sm text-gray-700">
++        <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Así lo verá el cliente</span>
++        <template x-for="linea in resumenLineas" :key="linea">
++            <p x-text="linea"></p>
++        </template>
++        <p class="text-gray-500" x-show="resumenLineas.length === 0" style="display: none;">Todavía no cargaste horarios.</p>
++    </div>
++</div>
+diff --git a/resources/views/comercios/partials/selector-pagos.blade.php b/resources/views/comercios/partials/selector-pagos.blade.php
+new file mode 100644
+index 0000000..4190226
+--- /dev/null
++++ b/resources/views/comercios/partials/selector-pagos.blade.php
+@@ -0,0 +1,71 @@
++{{--
++    Selector de formas de pago.
++
++    Se incluye en comercios/create y comercios/edit, DENTRO del <form>.
++    La lógica está en resources/js/horarios-pagos.js (componente Alpine "formasPago").
++
++    Envía UN solo campo oculto: "formas_pago", con las elegidas separadas por coma
++    (ej: "Efectivo, MODO, Naranja X"). Es el mismo formato del campo de texto que había antes.
++    Todos los <button> llevan type="button" y Enter en el campo "Agregar" no envía el formulario.
++--}}
++<div class="input-wrapper"
++     x-data="formasPago({ guardadas: @js(old('formas_pago', isset($comercio) ? $comercio->formas_pago : null)) })">
++
++    <span class="input-label">{{ __('Formas de pago') }}</span>
++    <p class="mt-1 text-sm text-gray-500">Tocá las que aceptás. Si falta alguna, agregala abajo.</p>
++
++    <input type="hidden" name="formas_pago" :value="texto">
++
++    {{-- Formas de pago comunes --}}
++    <div class="mt-3 flex flex-wrap gap-2">
++        <template x-for="p in base" :key="p[0]">
++            <button type="button" x-on:click="alternar(p[0])" :aria-pressed="estaElegido(p[0])"
++                    class="rounded-full border px-4 py-1.5 text-sm transition"
++                    :class="estaElegido(p[0])
++                        ? 'border-[var(--primary-green)] bg-green-50 font-semibold text-green-800'
++                        : 'border-gray-300 bg-gray-50 text-gray-700 hover:border-[var(--primary-green)]'">
++                <span x-text="(estaElegido(p[0]) ? '✓ ' : '') + p[1] + ' ' + p[0]"></span>
++            </button>
++        </template>
++
++        {{-- Formas de pago agregadas por el comerciante --}}
++        <template x-for="nombre in personalizadas" :key="nombre">
++            <span class="inline-flex items-center rounded-full border py-1 pl-4 pr-1 text-sm transition"
++                  :class="estaElegido(nombre)
++                      ? 'border-[var(--primary-green)] bg-green-50 font-semibold text-green-800'
++                      : 'border-gray-300 bg-gray-50 text-gray-700'">
++                <button type="button" x-on:click="alternar(nombre)" :aria-pressed="estaElegido(nombre)"
++                        x-text="(estaElegido(nombre) ? '✓ ' : '') + nombre"></button>
++                <button type="button" x-on:click="quitarPersonalizada(nombre)" :aria-label="'Quitar ' + nombre"
++                        class="px-2 text-base leading-none hover:text-red-600">×</button>
++            </span>
++        </template>
++    </div>
++
++    {{-- Agregar otra --}}
++    <div class="mt-4 flex flex-wrap items-end gap-3">
++        <div class="min-w-[200px] flex-1">
++            <label for="pago-nuevo" class="block text-xs text-gray-500 mb-1">¿Falta alguna? Agregala</label>
++            <input id="pago-nuevo" type="text" x-model="nuevo" x-on:keydown.enter.prevent="agregar()"
++                   maxlength="80" placeholder="Ej: Naranja X, Cheque, Bitcoin"
++                   class="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-[var(--primary-green)] focus:ring-[var(--primary-green)]">
++        </div>
++        <button type="button" x-on:click="agregar()"
++                class="px-4 py-2 bg-[var(--primary-green)] text-white text-sm font-semibold rounded-lg transition hover:bg-green-600">
++            Agregar
++        </button>
++    </div>
++
++    <p class="mt-2 text-sm text-red-600" x-show="mensaje" x-text="mensaje" style="display: none;"></p>
++
++    {{-- Vista previa: cómo lo verá el cliente --}}
++    <div class="mt-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3 text-sm text-gray-700">
++        <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Así lo verá el cliente</span>
++        <div class="flex flex-wrap gap-2">
++            <template x-for="nombre in elegidas" :key="nombre">
++                <span class="inline-flex rounded-full bg-sky-100 px-3 py-0.5 text-sm text-sky-800" x-text="nombre"></span>
++            </template>
++        </div>
++        <p class="text-gray-500" x-show="elegidas.length === 0" style="display: none;">No elegiste ninguna forma de pago.</p>
++    </div>
++</div>
+diff --git a/resources/views/comercios/show.blade.php b/resources/views/comercios/show.blade.php
+index 307d911..336f690 100644
+--- a/resources/views/comercios/show.blade.php
++++ b/resources/views/comercios/show.blade.php
+@@ -113,11 +113,44 @@ class="mt-3 flex items-center justify-center w-full px-4 py-2 bg-[var(--light-bl
+                     @endif
+ 
+                     <!-- Horarios -->
++                    @php
++                        // Fechas de cierre que todavía no pasaron (las vencidas no se muestran al cliente)
++                        $cierresVigentes = collect($comercio->dias_cierre ?? [])
++                            ->filter(fn ($c) => ($c['b'] ?? $c['a']) >= now()->toDateString())
++                            ->values();
++
++                        // Si el comercio usa el selector nuevo, dias_cierre es un array (aunque esté vacío).
++                        // Si es null, es un comercio viejo que solo tiene el texto libre en dias_no_laborales.
++                        $usaSelectorCierres = $comercio->dias_cierre !== null;
++                    @endphp
+                     <div class="mt-6 border-t pt-6">
+                         <h3 class="text-lg font-semibold text-gray-800 mb-2">Horarios</h3>
+                         <div class="text-gray-700">
+-                            <p><span class="font-medium">Atención:</span> {{ $comercio->horarios_atencion ?? 'No especificado' }}</p>
+-                            <p><span class="font-medium">Días cerrados:</span> {{ $comercio->dias_no_laborales ?? 'No especificado' }}</p>
++                            <p class="font-medium">Atención:</p>
++                            <p class="whitespace-pre-line">{{ $comercio->horarios_atencion ?: 'No especificado' }}</p>
++
++                            <p class="mt-3 font-medium">Días cerrados:</p>
++                            @if ($usaSelectorCierres)
++                                @if ($comercio->cierra_feriados)
++                                    <p>Cerrado los feriados nacionales.</p>
++                                @endif
++                                @foreach ($cierresVigentes as $cierre)
++                                    <p>
++                                        {{ \Carbon\Carbon::parse($cierre['a'])->format('d/m/Y') }}
++                                        @if (!empty($cierre['b']))
++                                            al {{ \Carbon\Carbon::parse($cierre['b'])->format('d/m/Y') }}
++                                        @endif
++                                        @if (!empty($cierre['w']))
++                                            <span class="text-gray-500">({{ $cierre['w'] }})</span>
++                                        @endif
++                                    </p>
++                                @endforeach
++                                @if (!$comercio->cierra_feriados && $cierresVigentes->isEmpty())
++                                    <p>Sin cierres especiales.</p>
++                                @endif
++                            @else
++                                <p class="whitespace-pre-line">{{ $comercio->dias_no_laborales ?: 'No especificado' }}</p>
++                            @endif
+                         </div>
+                     </div>
+ 
+@@ -128,7 +161,18 @@ class="mt-3 flex items-center justify-center w-full px-4 py-2 bg-[var(--light-bl
+                             <!-- Formas de Pago -->
+                             <div>
+                                 <p class="font-medium text-gray-700">Formas de Pago:</p>
+-                                <p class="text-gray-600">{{ $comercio->formas_pago ?? 'No especificado' }}</p>
++                                @php
++                                    $formasPago = array_values(array_filter(array_map('trim', explode(',', $comercio->formas_pago ?? ''))));
++                                @endphp
++                                @if (count($formasPago))
++                                    <div class="mt-1 flex flex-wrap gap-2">
++                                        @foreach ($formasPago as $pago)
++                                            <span class="inline-flex rounded-full bg-sky-100 px-3 py-0.5 text-sm text-sky-800">{{ $pago }}</span>
++                                        @endforeach
++                                    </div>
++                                @else
++                                    <p class="text-gray-600">No especificado</p>
++                                @endif
+                             </div>
+                             <!-- Otros Servicios -->
+                             <div>
