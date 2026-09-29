@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne; // <-- AÑADIDA ESTA LÍNEA
 
 class User extends Authenticatable
@@ -54,5 +55,14 @@ class User extends Authenticatable
     public function comercio(): HasOne
     {
         return $this->hasOne(Comercio::class);
+    }
+
+    /**
+     * Define la relación: Un Usuario (comerciante) puede tener VARIOS Comercios.
+     * (La columna comercios.user_id no es única, así que no hace falta migración.)
+     */
+    public function comercios(): HasMany
+    {
+        return $this->hasMany(Comercio::class);
     }
 }

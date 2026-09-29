@@ -4,6 +4,7 @@ import Alpine from 'alpinejs';
 import { registrarComponentesMapa } from './mapa-comercio';
 import { registrarComponenteLogo } from './logo-comercio';
 import { registrarComponentesHorariosPagos } from './horarios-pagos';
+import { registrarBuscadorComercios } from './buscador-comercios';
 
 window.Alpine = Alpine;
 
@@ -15,5 +16,8 @@ registrarComponenteLogo(Alpine);
 
 // Componentes de horarios de atención, días no laborales y formas de pago. También antes de Alpine.start().
 registrarComponentesHorariosPagos(Alpine);
+
+// Buscador en vivo de los comercios del panel del comerciante. También antes de Alpine.start().
+registrarBuscadorComercios(Alpine);
 
 Alpine.start();

@@ -60,9 +60,7 @@ class ComercioController extends Controller
      */
     public function create(): View|RedirectResponse
     {
-        if (Auth::user()->comercio) {
-            return redirect()->route('comercio.edit')->with('status', 'Ya tienes un comercio registrado. Aquí puedes editarlo.');
-        }
+        // Un comerciante puede registrar todos los comercios que quiera.
         return view('comercios.create');
     }
 
@@ -115,7 +113,7 @@ class ComercioController extends Controller
         }
 
         // 3. GUARDAR EL COMERCIO
-        $request->user()->comercio()->create($validatedData);
+        $request->user()->comercios()->create($validatedData);
 
         // 4. REDIRIGIR AL USUARIO
         return redirect()->route('dashboard')->with('status', '¡Tu comercio ha sido registrado con éxito!');
@@ -143,13 +141,9 @@ class ComercioController extends Controller
     /**
      * Muestra el formulario para editar el comercio existente.
      */
-    public function edit(): View|RedirectResponse
+    public function edit(Comercio $comercio): View
     {
-        $comercio = Auth::user()->comercio;
-
-        if (!$comercio) {
-            return redirect()->route('comercio.create')->with('status', 'Primero debes registrar tu comercio.');
-        }
+        $this->autorizarComercio($comercio);
 
         return view('comercios.edit', [
             'comercio' => $comercio
@@ -159,13 +153,9 @@ class ComercioController extends Controller
     /**
      * Actualiza el comercio en la base de datos.
      */
-    public function update(Request $request): RedirectResponse
+    public function update(Request $request, Comercio $comercio): RedirectResponse
     {
-        $comercio = $request->user()->comercio;
-
-        if (!$comercio) {
-            return redirect()->route('comercio.create')->with('status', 'Primero debes registrar tu comercio.');
-        }
+        $this->autorizarComercio($comercio);
 
         // 1. VALIDACIÓN DE DATOS
         $this->decodificarJsonHorarios($request);
@@ -228,13 +218,9 @@ class ComercioController extends Controller
     /**
      * Elimina el comercio de la base de datos.
      */
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request, Comercio $comercio): RedirectResponse
     {
-        $comercio = $request->user()->comercio;
-
-        if (!$comercio) {
-            return redirect()->route('dashboard')->with('status', 'No tienes ningún comercio para eliminar.');
-        }
+        $this->autorizarComercio($comercio);
 
         // Eliminar el archivo del logo (si tenía) y después el comercio
         $this->borrarLogo($comercio->logo);
@@ -242,6 +228,19 @@ class ComercioController extends Controller
 
         // Redirigir al dashboard con un mensaje de éxito
         return redirect()->route('dashboard')->with('status', 'Tu comercio ha sido eliminado correctamente.');
+    }
+
+    // -------------------------------------------------------------------
+    // --- AUTORIZACIÓN ---
+    // -------------------------------------------------------------------
+
+    /**
+     * Cada comerciante solo puede editar o eliminar SUS comercios.
+     * Si el comercio es de otro usuario respondemos 404 (no revelamos que existe).
+     */
+    private function autorizarComercio(Comercio $comercio): void
+    {
+        abort_unless($comercio->user_id === Auth::id(), 404);
     }
 
     // -------------------------------------------------------------------

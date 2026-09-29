@@ -51,13 +51,19 @@ Route::middleware('auth')->group(function () {
     // (C)REATE: GUARDA
     Route::post('/comercio', [ComercioController::class, 'store'])->name('comercio.store');
 
+    // Un comerciante puede tener varios comercios: editar, actualizar y eliminar
+    // trabajan sobre UN comercio puntual ({comercio} = id).
+
     // (U)PDATE: Muestra el formulario para EDITAR
-    Route::get('/comercio/editar', [ComercioController::class, 'edit'])->name('comercio.edit');
+    Route::get('/comercio/{comercio}/editar', [ComercioController::class, 'edit'])->whereNumber('comercio')->name('comercio.edit');
     // (U)PDATE: ACTUALIZA
-    Route::patch('/comercio', [ComercioController::class, 'update'])->name('comercio.update');
+    Route::patch('/comercio/{comercio}', [ComercioController::class, 'update'])->whereNumber('comercio')->name('comercio.update');
 
     // (D)ELETE: ELIMINA
-    Route::delete('/comercio', [ComercioController::class, 'destroy'])->name('comercio.destroy');
+    Route::delete('/comercio/{comercio}', [ComercioController::class, 'destroy'])->whereNumber('comercio')->name('comercio.destroy');
+
+    // Compatibilidad: la URL vieja (cuando había un solo comercio) ahora lleva al panel.
+    Route::get('/comercio/editar', fn () => redirect()->route('dashboard'));
 });
 
 

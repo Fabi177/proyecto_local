@@ -1,28 +1,65 @@
-@if (Auth::user()->comercio)
+@php
+    // Todos los comercios del comerciante, ordenados por nombre
+    $comercios = Auth::user()->comercios()->orderBy('nombre')->get();
+    // Un texto por comercio para el buscador en vivo (mismo orden que las tarjetas)
+    $textosBusqueda = $comercios->map(fn ($c) => trim($c->nombre . ' ' . $c->rubro . ' ' . $c->direccion))->all();
+@endphp
+
+@if ($comercios->isNotEmpty())
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-        <div class="md:col-span-2">
-            <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
-                <div class="p-6 md:p-8">
-                    <h3 class="text-2xl font-bold text-gray-800">Panel de {{ Auth::user()->comercio->nombre }}</h3>
-                    <p class="mt-2 text-gray-600">
-                        Gestiona la información de tu comercio, mira tus estadísticas y responde a tus clientes.
-                    </p>
+        <div class="md:col-span-2" id="mis-comercios" x-data="listaComercios(@js($textosBusqueda))">
 
-                    <div class="mt-6 flex flex-col sm:flex-row gap-4">
+            <div class="mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">Mis comercios ({{ $comercios->count() }})</h3>
+                <p class="mt-1 text-gray-600">
+                    Gestiona la información de tus comercios, mira tus estadísticas y responde a tus clientes.
+                </p>
+            </div>
 
-                        <a href="{{ route('comercio.edit') }}" class="inline-flex items-center justify-center px-6 py-3 bg-[var(--primary-green)] text-white font-bold rounded-lg shadow transition hover:bg-green-600">
-                            <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>
-                            Editar mi Comercio
-                        </a>
+            <div class="flex flex-col gap-6">
+                @foreach ($comercios as $comercio)
+                    <div x-show="visible({{ $loop->index }})" class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
+                        <div class="p-6 md:p-8">
 
-                        <a href="{{ route('comercio.show', ['comercio' => Auth::user()->comercio->id]) }}" class="inline-flex items-center justify-center px-6 py-3 bg-gray-100 text-gray-700 font-bold rounded-lg shadow-sm transition hover:bg-gray-200">
-                            <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
-                            Ver Perfil Público
-                        </a>
+                            <div class="flex items-start gap-4">
+                                @if ($comercio->logo_url)
+                                    <img src="{{ $comercio->logo_url }}" alt="Logo de {{ $comercio->nombre }}" class="w-16 h-16 flex-shrink-0 rounded-lg border border-gray-200 bg-white object-contain">
+                                @endif
+                                <div class="min-w-0">
+                                    <h3 class="text-2xl font-bold text-gray-800 break-words">{{ $comercio->nombre }}</h3>
+                                    <p class="mt-1 text-sm text-gray-500 break-words">{{ $comercio->rubro }} · {{ $comercio->direccion }}</p>
+                                </div>
+                            </div>
+
+                            <div class="mt-6 flex flex-col sm:flex-row gap-4">
+
+                                <a href="{{ route('comercio.edit', $comercio) }}" class="inline-flex items-center justify-center px-6 py-3 bg-[var(--primary-green)] text-white font-bold rounded-lg shadow transition hover:bg-green-600">
+                                    <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>
+                                    Editar mi Comercio
+                                </a>
+
+                                <a href="{{ route('comercio.show', ['comercio' => $comercio->id]) }}" class="inline-flex items-center justify-center px-6 py-3 bg-gray-100 text-gray-700 font-bold rounded-lg shadow-sm transition hover:bg-gray-200">
+                                    <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
+                                    Ver Perfil Público
+                                </a>
+                            </div>
+                        </div>
                     </div>
+                @endforeach
+
+                <div x-show="sinResultados" style="display: none;" class="bg-white shadow-xl sm:rounded-lg p-6 md:p-8 text-center text-gray-600">
+                    Ningún comercio coincide con tu búsqueda.
+                    <button type="button" @click="buscador.limpiar()" class="ml-1 font-semibold text-[var(--primary-green)] hover:underline">Ver todos</button>
                 </div>
+            </div>
+
+            <div class="mt-6">
+                <a href="{{ route('comercio.create') }}" class="inline-flex items-center justify-center px-6 py-3 bg-[var(--primary-green)] text-white font-bold rounded-lg shadow transition hover:bg-green-600">
+                    <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                    Agregar comercio
+                </a>
             </div>
         </div>
 

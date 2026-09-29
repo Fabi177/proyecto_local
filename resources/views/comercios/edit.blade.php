@@ -18,7 +18,7 @@
         <!-- ================================== -->
         <!-- === FORMULARIO 1: ACTUALIZAR (PATCH) === -->
         <!-- ================================== -->
-        <form method="POST" action="{{ route('comercio.update') }}" enctype="multipart/form-data">
+        <form method="POST" action="{{ route('comercio.update', $comercio) }}" enctype="multipart/form-data">
             @csrf
             @method('PATCH')
 
@@ -225,7 +225,7 @@
                 Una vez que elimines tu comercio, no hay vuelta atrás. Toda la información se perderá permanentemente.
             </p>
 
-            <form method="POST" action="{{ route('comercio.destroy') }}" onsubmit="return confirm('¿Estás 100% seguro de que quieres eliminar tu comercio? Esta acción no se puede deshacer.');">
+            <form method="POST" action="{{ route('comercio.destroy', $comercio) }}" onsubmit="return confirm(@js('¿Estás 100% seguro de que querés eliminar «' . $comercio->nombre . '»? Esta acción no se puede deshacer.'));">
                 @csrf
                 @method('DELETE')
 
