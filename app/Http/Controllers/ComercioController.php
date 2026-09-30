@@ -101,8 +101,9 @@ class ComercioController extends Controller
         ], array_merge($this->mensajesLogo(), $this->mensajesHorarios()));
 
         // 2. PROCESAR LOS CHECKBOXES
-        $validatedData['ingreso_discapacitados'] = $request->has('ingreso_discapacitados');
-        $validatedData['estacionamiento'] = $request->has('estacionamiento');
+        foreach (array_keys(Comercio::ACCESIBILIDAD) as $campo) {
+            $validatedData[$campo] = $request->has($campo);
+        }
         $validatedData['cierra_feriados'] = $request->has('cierra_feriados');
         $validatedData = $this->normalizarHorarios($validatedData);
 
@@ -189,8 +190,9 @@ class ComercioController extends Controller
         ], array_merge($this->mensajesLogo(), $this->mensajesHorarios()));
 
         // 2. PROCESAR LOS CHECKBOXES
-        $validatedData['ingreso_discapacitados'] = $request->has('ingreso_discapacitados');
-        $validatedData['estacionamiento'] = $request->has('estacionamiento');
+        foreach (array_keys(Comercio::ACCESIBILIDAD) as $campo) {
+            $validatedData[$campo] = $request->has($campo);
+        }
         $validatedData['cierra_feriados'] = $request->has('cierra_feriados');
         $validatedData = $this->normalizarHorarios($validatedData);
 

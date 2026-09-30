@@ -12,6 +12,35 @@ class Comercio extends Model
     use HasFactory;
 
     /**
+     * Accesibilidad y servicios del comercio (campo => etiquetas).
+     *
+     * - 'si':       etiqueta que se muestra cuando el comercio lo tiene.
+     * - 'no':       etiqueta que se muestra cuando no lo tiene.
+     * - 'pregunta': texto del checkbox en los formularios de alta y edición.
+     *
+     * Para sumar un ítem nuevo: agregar una columna booleana con una migración,
+     * ponerla en $fillable y en casts(), y agregar una entrada acá. Las vistas
+     * (perfil, alta y edición) y el controlador la toman de esta lista.
+     */
+    public const ACCESIBILIDAD = [
+        'ingreso_discapacitados' => [
+            'si' => 'Apto movilidad reducida',
+            'no' => 'Sin acceso adaptado',
+            'pregunta' => '¿Es apto para personas con movilidad reducida?',
+        ],
+        'rampa_acceso' => [
+            'si' => 'Rampa de acceso',
+            'no' => 'Entrada con escalones',
+            'pregunta' => '¿Tiene rampa de acceso?',
+        ],
+        'estacionamiento' => [
+            'si' => 'Estacionamiento exclusivo',
+            'no' => 'Sin estacionamiento',
+            'pregunta' => '¿Tiene estacionamiento exclusivo para clientes?',
+        ],
+    ];
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
@@ -32,6 +61,7 @@ class Comercio extends Model
         'dias_cierre',
         'cierra_feriados',
         'ingreso_discapacitados',
+        'rampa_acceso',
         'estacionamiento',
         'servicios_adicionales',
         'formas_pago',
@@ -50,6 +80,7 @@ class Comercio extends Model
     {
         return [
             'ingreso_discapacitados' => 'boolean',
+            'rampa_acceso' => 'boolean',
             'estacionamiento' => 'boolean',
             'cierra_feriados' => 'boolean',
             'horarios_config' => 'array',

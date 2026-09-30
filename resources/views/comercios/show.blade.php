@@ -179,29 +179,22 @@
                                 <p class="font-medium text-gray-700">Servicios Adicionales:</p>
                                 <p class="text-gray-600">{{ $comercio->servicios_adicionales ?? 'No especificado' }}</p>
                             </div>
-                            <!-- Accesibilidad -->
+                            <!-- Accesibilidad y servicios: cada ítem muestra su etiqueta afirmativa o negativa -->
                             <div>
-                                @if ($comercio->ingreso_discapacitados)
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                                        ✓ Acceso Discapacitados
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                                        ✗ Sin Acceso Discapacitados
-                                    </span>
-                                @endif
-                            </div>
-                            <!-- Estacionamiento -->
-                            <div>
-                                @if ($comercio->estacionamiento)
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                                        ✓ Estacionamiento Propio
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                                        ✗ Sin Estacionamiento
-                                    </span>
-                                @endif
+                                <p class="font-medium text-gray-700 mb-2">Accesibilidad y servicios:</p>
+                                <ul class="flex flex-col items-start gap-2" data-accesibilidad>
+                                    @foreach (\App\Models\Comercio::ACCESIBILIDAD as $campo => $item)
+                                        @if ($comercio->$campo)
+                                            <li class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                                <span aria-hidden="true">✓</span> {{ $item['si'] }}
+                                            </li>
+                                        @else
+                                            <li class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                                                <span aria-hidden="true">✕</span> {{ $item['no'] }}
+                                            </li>
+                                        @endif
+                                    @endforeach
+                                </ul>
                             </div>
                         </div>
                     </div>

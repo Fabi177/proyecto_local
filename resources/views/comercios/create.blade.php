@@ -141,14 +141,12 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 mt-2">
-                        <div class="checkbox-wrapper">
-                            <input id="ingreso_discapacitados" name="ingreso_discapacitados" type="checkbox" class="checkbox-input" value="1" {{ old('ingreso_discapacitados') ? 'checked' : '' }}>
-                            <label for="ingreso_discapacitados" class="checkbox-label">¿Tiene ingreso para discapacitados?</label>
-                        </div>
-                        <div class="checkbox-wrapper">
-                            <input id="estacionamiento" name="estacionamiento" type="checkbox" class="checkbox-input" value="1" {{ old('estacionamiento') ? 'checked' : '' }}>
-                            <label for="estacionamiento" class="checkbox-label">¿Tiene estacionamiento para clientes?</label>
-                        </div>
+                        @foreach (\App\Models\Comercio::ACCESIBILIDAD as $campo => $item)
+                            <div class="checkbox-wrapper">
+                                <input id="{{ $campo }}" name="{{ $campo }}" type="checkbox" class="checkbox-input" value="1" {{ old($campo) ? 'checked' : '' }}>
+                                <label for="{{ $campo }}" class="checkbox-label">{{ $item['pregunta'] }}</label>
+                            </div>
+                        @endforeach
                     </div>
 
                     <h4 class="text-lg font-semibold text-gray-800 mt-8">Presencia Online</h4>
