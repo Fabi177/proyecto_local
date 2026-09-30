@@ -1,0 +1,63 @@
+diff --git a/resources/views/comercios/show.blade.php b/resources/views/comercios/show.blade.php
+index 45ef699..9701e32 100644
+--- a/resources/views/comercios/show.blade.php
++++ b/resources/views/comercios/show.blade.php
+@@ -32,10 +32,10 @@
+     </div>
+ 
+     @if ($mostrarBuscador)
+-        <!-- Buscador: misma búsqueda que el del panel del cliente -->
++        <!-- Buscador: arranca vacío, con el mismo texto de ayuda que el del panel del cliente -->
+         <form action="{{ route('comercios.index') }}" method="GET" role="search" class="perfil-buscador">
+             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+-            <input type="search" name="search" value="{{ $terminoBuscado }}" aria-label="Buscar comercios" placeholder="Buscar comercios por nombre, rubro o servicio..." autocomplete="off">
++            <input type="search" name="search" aria-label="Buscar comercios" placeholder="Buscar Restaurantes, Ferreterías, Servicios..." autocomplete="off">
+             <button type="submit" class="perfil-sr">Buscar</button>
+         </form>
+     @endif
+diff --git a/tests/Feature/ComercioBuscadorPerfilTest.php b/tests/Feature/ComercioBuscadorPerfilTest.php
+index fee72bf..ef9c2bc 100644
+--- a/tests/Feature/ComercioBuscadorPerfilTest.php
++++ b/tests/Feature/ComercioBuscadorPerfilTest.php
+@@ -38,6 +38,14 @@ test('el cliente ve el buscador y el botón volver en el perfil', function () {
+         ->assertSee('Volver a los resultados');
+ });
+ 
++test('el buscador del perfil arranca vacío y con el texto de ayuda del panel', function () {
++    $cliente = User::factory()->create(['role' => 'usuario']);
++
++    verPerfilComo($cliente, comercioDePrueba(), route('comercios.index', ['search' => 'pan']))
++        ->assertSee('placeholder="Buscar Restaurantes, Ferreterías, Servicios..."', false)
++        ->assertDontSee('name="search" value=', false);
++});
++
+ test('el buscador del perfil envía la búsqueda al listado de comercios', function () {
+     $cliente = User::factory()->create(['role' => 'usuario']);
+ 
+@@ -52,22 +60,22 @@ test('sin página anterior, volver lleva al buscador sin filtros', function () {
+         ->assertSee('href="' . e(route('comercios.index')) . '" class="perfil-volver"', false);
+ });
+ 
+-test('volver conserva la búsqueda y la página de la que venía el cliente', function () {
++test('volver conserva la búsqueda y la página, pero el buscador queda vacío', function () {
+     $cliente = User::factory()->create(['role' => 'usuario']);
+     $destino = route('comercios.index', ['search' => 'pan', 'page' => '2']);
+ 
+     verPerfilComo($cliente, comercioDePrueba(), $destino)
+         ->assertSee('href="' . e($destino) . '" class="perfil-volver"', false)
+-        ->assertSee('value="pan"', false);
++        ->assertDontSee('value="pan"', false);
+ });
+ 
+-test('volver conserva el rubro elegido', function () {
++test('volver conserva el rubro elegido, pero el buscador queda vacío', function () {
+     $cliente = User::factory()->create(['role' => 'usuario']);
+     $destino = route('comercios.index', ['rubro' => 'Farmacia']);
+ 
+     verPerfilComo($cliente, comercioDePrueba(), $destino)
+         ->assertSee('href="' . e($destino) . '" class="perfil-volver"', false)
+-        ->assertSee('value="Farmacia"', false);
++        ->assertDontSee('value="Farmacia"', false);
+ });
+ 
+ test('si viene de otro perfil, volver lleva al buscador sin filtros', function () {

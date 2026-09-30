@@ -129,9 +129,45 @@ class ComercioController extends Controller
      */
     public function show(Comercio $comercio): View
     {
-        return view('comercios.show', [
-            'comercio' => $comercio
-        ]);
+        return view('comercios.show', array_merge(
+            ['comercio' => $comercio],
+            $this->datosVolverABusqueda(),
+            // El buscador y el botón "Volver" son para el cliente, no para el comerciante.
+            ['mostrarBuscador' => Auth::user()?->role !== 'comerciante']
+        ));
+    }
+
+    /**
+     * Arma el enlace para "Volver a los resultados".
+     *
+     * Si el cliente llegó al perfil desde el buscador (/comercios), se vuelve a esa
+     * misma búsqueda (mismo texto, rubro y página). Si no, se vuelve al buscador
+     * sin filtros. Solo se toman los filtros conocidos de la URL anterior, nunca
+     * la URL completa, así que no se puede usar para redirigir a otro sitio.
+     *
+     * @return array{volverUrl: string, terminoBuscado: string|null}
+     */
+    private function datosVolverABusqueda(): array
+    {
+        $previa = parse_url(url()->previous()) ?: [];
+        $buscador = parse_url(route('comercios.index'));
+
+        $vieneDelBuscador = ($previa['host'] ?? null) === ($buscador['host'] ?? null)
+            && rtrim($previa['path'] ?? '', '/') === rtrim($buscador['path'] ?? '', '/');
+
+        $filtros = [];
+        if ($vieneDelBuscador) {
+            parse_str($previa['query'] ?? '', $consulta);
+            $filtros = array_filter(
+                array_intersect_key($consulta, array_flip(['search', 'rubro', 'page'])),
+                fn ($valor) => is_string($valor) && trim($valor) !== ''
+            );
+        }
+
+        return [
+            'volverUrl' => route('comercios.index', $filtros),
+            'terminoBuscado' => $filtros['search'] ?? ($filtros['rubro'] ?? null),
+        ];
     }
 
 

@@ -1,10 +1,45 @@
 
 <x-app-layout>
 <x-slot name="header">
-<h2 class="font-semibold text-xl text-gray-800 leading-tight">
-<!-- Título de la página: el nombre del comercio -->
-{{ $comercio->nombre }}
-</h2>
+<style>
+    .perfil-barra { display: flex; flex-direction: column; gap: 12px; }
+    .perfil-barra__izq { display: flex; align-items: center; gap: 12px; min-width: 0; flex-wrap: wrap; }
+    .perfil-volver { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border: 1px solid #d1d5db; border-radius: 9999px; background: #fff; color: #374151; font-size: .875rem; font-weight: 600; white-space: nowrap; text-decoration: none; }
+    .perfil-volver:hover { background: #f3f4f6; }
+    .perfil-volver:focus-visible, .perfil-buscador input:focus-visible { outline: 3px solid var(--light-blue, #3498db); outline-offset: 2px; }
+    .perfil-buscador { position: relative; width: 100%; }
+    .perfil-buscador input[type="search"] { width: 100%; padding: .55rem .75rem .55rem 2.5rem; border: 1px solid #d1d5db; border-radius: .5rem; background: #fff; font-size: .95rem; }
+    .perfil-buscador input[type="search"]:focus { border-color: var(--primary-green, #2ecc71); box-shadow: 0 0 0 1px var(--primary-green, #2ecc71); }
+    .perfil-buscador svg { position: absolute; left: .75rem; top: 50%; transform: translateY(-50%); width: 1.25rem; height: 1.25rem; color: #9ca3af; pointer-events: none; }
+    .perfil-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    @media (min-width: 768px) {
+        .perfil-barra { flex-direction: row; align-items: center; justify-content: space-between; }
+        .perfil-buscador { max-width: 26rem; }
+    }
+</style>
+<div class="perfil-barra">
+    <div class="perfil-barra__izq">
+        @if ($mostrarBuscador)
+            <!-- Vuelve a los resultados de la búsqueda que hizo el cliente -->
+            <a href="{{ $volverUrl }}" class="perfil-volver">
+                <span aria-hidden="true">←</span> Volver a los resultados
+            </a>
+        @endif
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            <!-- Título de la página: el nombre del comercio -->
+            {{ $comercio->nombre }}
+        </h2>
+    </div>
+
+    @if ($mostrarBuscador)
+        <!-- Buscador: arranca vacío, con el mismo texto de ayuda que el del panel del cliente -->
+        <form action="{{ route('comercios.index') }}" method="GET" role="search" class="perfil-buscador">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+            <input type="search" name="search" aria-label="Buscar comercios" placeholder="Buscar Restaurantes, Ferreterías, Servicios..." autocomplete="off">
+            <button type="submit" class="perfil-sr">Buscar</button>
+        </form>
+    @endif
+</div>
 </x-slot>
 
 <div class="py-12">
