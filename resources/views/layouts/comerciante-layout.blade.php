@@ -6,6 +6,8 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title>{{ config('app.name', 'Laravel') }} - Panel Comerciante</title>
+        <link rel="icon" href="{{ asset('favicon.ico') }}?v=2" sizes="any">
+        <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}?v=2">
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         {{-- Fuente sin bloquear el render: se pide en segundo plano y se aplica cuando llega --}}
@@ -97,8 +99,7 @@
 
                 <div class="flex items-center justify-center mt-8">
                     <a href="{{ route('dashboard') }}" class="flex items-center">
-                        <x-application-logo class="block h-9 w-auto fill-current text-white" />
-                        <span class="text-white text-2xl font-bold ml-2">LocalCommers</span>
+                        <x-application-logo class="block w-52 h-auto" />
                     </a>
                 </div>
 

@@ -4,6 +4,8 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>LocalCommers - Inicio</title>
+        <link rel="icon" href="{{ asset('favicon.ico') }}?v=2" sizes="any">
+        <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}?v=2">
 
         <!-- Scripts de Tailwind --><script src="https://cdn.tailwindcss.com"></script>
 
@@ -38,7 +40,7 @@
                 <nav class="flex items-center justify-between p-6 lg:px-8" aria-label="Global">
                     <!-- Logo/Título --><div class="flex lg:flex-1">
                         <a href="{{ url('/') }}" class="-m-1.5 p-1.5">
-                            <h1 class="text-2xl font-bold text-brand-green">LocalCommers</h1>
+                            <h1><img src="{{ asset('imagenes/logo.png') }}" alt="LocalCommers" class="h-20 w-auto"></h1>
                         </a>
                     </div>
 

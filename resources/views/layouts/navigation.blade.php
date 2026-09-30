@@ -3,22 +3,15 @@
         <div class="flex justify-between h-16">
             <div class="flex">
                 <div class="shrink-0 flex items-center">
-                    <a href="{{ route('dashboard') }}">
-                        <x-application-logo class="block h-9 w-auto fill-current text-white" />
+                    <a href="{{ route('dashboard') }}"
+                       class="inline-flex items-center h-full border-b-2 transition duration-150 ease-in-out
+                       {{ request()->routeIs('dashboard')
+                          ? 'border-white'  /* ESTADO ACTIVO */
+                          : 'border-transparent hover:border-white/50' /* ESTADO INACTIVO */
+                       }}">
+                        <x-application-logo class="block h-16 w-auto" />
                     </a>
                 </div>
-
-                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <a href="{{ route('dashboard') }}"
-                       class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out
-                       {{ request()->routeIs('dashboard')
-                          ? 'border-white text-white font-bold'  /* ESTADO ACTIVO */
-                          : 'border-transparent text-white/70 hover:text-white hover:border-white/50' /* ESTADO INACTIVO */
-                       }}">
-                        LocalCommers
-                    </a>
-
-                    </div>
             </div>
 
             <div class="hidden sm:flex sm:items-center sm:ms-6">
@@ -66,9 +59,9 @@
 
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden bg-white shadow-md border-t border-gray-100">
         <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                LocalCommers
-            </x-responsive-nav-link>
+            <a href="{{ route('dashboard') }}" class="block px-4 py-1 bg-gradient-to-r from-[var(--light-blue)] to-[var(--primary-green)]">
+                <x-application-logo class="block h-14 w-auto" />
+            </a>
         </div>
 
         <div class="pt-4 pb-1 border-t border-gray-200">
