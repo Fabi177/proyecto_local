@@ -18,6 +18,12 @@ Route::get('/', function () {
 // (R)EAD: Muestra la página de BÚSQUEDA y RESULTADOS de todos los comercios
 Route::get('/comercios', [ComercioController::class, 'index'])->name('comercios.index');
 
+// Sugerencias en vivo para los buscadores (devuelve JSON).
+// IMPORTANTE: debe ir ANTES de /comercios/{comercio}, si no "sugerencias" se toma como el id de un comercio.
+Route::get('/comercios/sugerencias', [ComercioController::class, 'sugerencias'])
+    ->middleware('throttle:60,1')
+    ->name('comercios.sugerencias');
+
 // (R)EAD: Muestra el perfil público de UN comercio
 // (Debe ir después de las rutas protegidas específicas de comercio)
 Route::get('/comercios/{comercio}', [ComercioController::class, 'show'])->name('comercio.show');

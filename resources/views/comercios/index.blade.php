@@ -9,18 +9,25 @@
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
         <!-- TARJETA DE BÚSQUEDA (COMO LA DEL DASHBOARD) -->
-        <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
+        <div class="bg-white overflow-visible shadow-xl sm:rounded-lg">
             <div class="p-6 md:p-8">
                 <!-- Formulario de Búsqueda -->
                 <form action="{{ route('comercios.index') }}" method="GET">
-                    <div class="relative flex items-center">
+                    <div class="relative flex items-center" x-data="autocompletadoComercios({ url: @js(route('comercios.sugerencias')) })" @click.outside="cerrar()">
                         <!-- El valor (value) mantiene lo que el usuario escribió -->
                         <input type="text"
                                name="search"
                                id="search"
+                               x-bind="entrada"
+                               role="combobox"
+                               aria-autocomplete="list"
+                               aria-haspopup="listbox"
+                               autocomplete="off"
                                class="block w-full rounded-lg border-gray-300 py-4 pl-12 pr-4 text-lg shadow-sm focus:border-[var(--primary-green)] focus:ring-[var(--primary-green)]"
                                placeholder="Buscar Restaurantes, Ferreterías, Servicios..."
                                value="{{ $filters['search'] ?? '' }}">
+
+                        @include('comercios.partials.sugerencias')
 
                         <div class="absolute left-0 pl-4">
                             <svg class="w-6 h-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>

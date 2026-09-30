@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Comercio;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -52,6 +53,53 @@ class ComercioController extends Controller
         return view('comercios.index', [
             'comercios' => $comercios,
             'filters' => $request->only(['search', 'rubro'])
+        ]);
+    }
+
+    /**
+     * Sugerencias en vivo para los buscadores (autocompletado).
+     *
+     * Devuelve como máximo 8 comercios cuyo nombre, descripción o rubro contienen lo que
+     * la persona va escribiendo (mismos campos que el buscador de index()). Los que
+     * EMPIEZAN con el texto salen primero. Solo se devuelven datos públicos y mínimos.
+     * Con menos de 2 letras no se consulta la base de datos.
+     */
+    public function sugerencias(Request $request): JsonResponse
+    {
+        $crudo = $request->query('q');
+        $termino = is_string($crudo) ? (preg_replace('/\s+/u', ' ', $crudo) ?? '') : '';
+        $termino = mb_substr(mb_strtolower(trim($termino)), 0, 100);
+
+        if (mb_strlen($termino) < 2) {
+            return response()->json(['sugerencias' => []]);
+        }
+
+        // Los comodines de LIKE (% y _) se toman como texto común. Se usa "!" como carácter de
+        // escape (y no la barra invertida) para que funcione igual en MySQL y en SQLite.
+        $escapado = str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $termino);
+        $contiene = "%{$escapado}%";
+        $empieza = "{$escapado}%";
+
+        $comercios = Comercio::query()
+            ->where(function ($q) use ($contiene) {
+                $q->whereRaw("LOWER(TRIM(nombre)) LIKE ? ESCAPE '!'", [$contiene])
+                  ->orWhereRaw("LOWER(TRIM(descripcion)) LIKE ? ESCAPE '!'", [$contiene])
+                  ->orWhereRaw("LOWER(TRIM(rubro)) LIKE ? ESCAPE '!'", [$contiene]);
+            })
+            ->orderByRaw("CASE WHEN LOWER(TRIM(nombre)) LIKE ? ESCAPE '!' THEN 0 ELSE 1 END", [$empieza])
+            ->orderBy('nombre')
+            ->limit(8)
+            ->get(['id', 'nombre', 'rubro', 'direccion', 'logo']);
+
+        return response()->json([
+            'sugerencias' => $comercios->map(fn (Comercio $comercio) => [
+                'id' => $comercio->id,
+                'nombre' => $comercio->nombre,
+                'rubro' => $comercio->rubro,
+                'direccion' => $comercio->direccion,
+                'logo' => $comercio->logo_url,
+                'url' => route('comercio.show', ['comercio' => $comercio->id]),
+            ])->values(),
         ]);
     }
 

@@ -5,6 +5,7 @@ import { registrarComponentesMapa } from './mapa-comercio';
 import { registrarComponenteLogo } from './logo-comercio';
 import { registrarComponentesHorariosPagos } from './horarios-pagos';
 import { registrarBuscadorComercios } from './buscador-comercios';
+import { registrarAutocompletadoComercios } from './autocompletado-comercios';
 
 window.Alpine = Alpine;
 
@@ -19,5 +20,8 @@ registrarComponentesHorariosPagos(Alpine);
 
 // Buscador en vivo de los comercios del panel del comerciante. También antes de Alpine.start().
 registrarBuscadorComercios(Alpine);
+
+// Sugerencias en vivo (autocompletado) de los buscadores públicos. También antes de Alpine.start().
+registrarAutocompletadoComercios(Alpine);
 
 Alpine.start();
