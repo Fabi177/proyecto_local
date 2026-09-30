@@ -18,6 +18,10 @@ RUN apt-get update && apt-get install -y \
 # Instalamos extensiones de PHP necesarias para Laravel
 RUN docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd
 
+# OPcache: acelera mucho PHP (sobre todo con la carpeta montada como volumen)
+RUN docker-php-ext-install opcache
+COPY docker/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
+
 # -----------------------------------------------------
 # --- INSTALACIÓN DE NODE.JS Y NPM (SOLUCIÓN AL ERROR) ---
 # Agregar repositorio de NodeSource LTS (Long Term Support)
