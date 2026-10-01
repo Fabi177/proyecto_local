@@ -46,10 +46,15 @@
 <div class="py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
         @if (session('status_resena'))
-            <!-- Aviso al volver de calificar o borrar una reseña -->
-            <div class="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-green-100 px-4 py-3 text-green-800 shadow" role="status">
-                <span class="font-medium">{{ session('status_resena') }}</span>
-                <a href="#resenas" class="text-sm font-semibold underline">Ver / editar mi reseña</a>
+            <!-- Aviso flotante arriba de la pantalla al calificar, editar o borrar una reseña (se cierra solo a los 4 s) -->
+            <div x-data="{ visible: true }" x-init="setTimeout(() => visible = false, 4000)"
+                 x-show="visible" x-transition.opacity.duration.300ms
+                 class="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4"
+                 role="status" aria-live="polite" data-aviso-resena>
+                <div class="pointer-events-auto flex items-center gap-3 rounded-lg bg-green-600 px-5 py-3 text-white shadow-2xl">
+                    <span class="font-semibold">{{ session('status_resena') }}</span>
+                    <button type="button" @click="visible = false" class="text-xl leading-none" aria-label="Cerrar aviso">&times;</button>
+                </div>
             </div>
         @endif
 

@@ -142,6 +142,55 @@ test('un comentario con HTML se muestra como texto, no se ejecuta', function () 
         ->assertSee('&lt;script&gt;alert(1)&lt;/script&gt;', false);
 });
 
+test('el autor puede editar su reseña (estrellas y texto); otro cliente y el admin no', function () {
+    $comercio = comercioParaResenas();
+    $autor = User::factory()->create(['role' => 'usuario']);
+    $otro = User::factory()->create(['role' => 'usuario']);
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $resena = Resena::create(['comercio_id' => $comercio->id, 'user_id' => $autor->id, 'calificacion' => 2, 'comentario' => 'Meh']);
+
+    $this->actingAs($otro)->patch(route('resenas.update', $resena), ['calificacion' => 5])->assertForbidden();
+    $this->actingAs($admin)->patch(route('resenas.update', $resena), ['calificacion' => 5])->assertForbidden();
+    expect($resena->fresh()->calificacion)->toBe(2);
+
+    $this->actingAs($autor)
+        ->patch(route('resenas.update', $resena), ['calificacion' => 5, 'comentario' => '  Mejoró mucho  '])
+        ->assertRedirect()
+        ->assertSessionHas('status_resena');
+
+    expect($resena->fresh()->calificacion)->toBe(5)
+        ->and($resena->fresh()->comentario)->toBe('Mejoró mucho')
+        ->and(Resena::count())->toBe(1);
+
+    $this->actingAs($autor)
+        ->patch(route('resenas.update', $resena), ['calificacion' => 9])
+        ->assertSessionHasErrorsIn('editarResena', ['calificacion']);
+    expect($resena->fresh()->calificacion)->toBe(5);
+});
+
+test('en la lista, el autor ve "Editar" junto a "Eliminar"; los demás no ven "Editar"', function () {
+    $comercio = comercioParaResenas();
+    $autor = User::factory()->create(['role' => 'usuario']);
+    $otro = User::factory()->create(['role' => 'usuario']);
+    $admin = User::factory()->create(['role' => 'admin']);
+    Resena::create(['comercio_id' => $comercio->id, 'user_id' => $autor->id, 'calificacion' => 4, 'comentario' => 'Buen servicio']);
+
+    $this->actingAs($autor)->get(route('comercio.show', $comercio))
+        ->assertSee('data-resena-boton-editar', false)
+        ->assertSee('data-resena-editar', false)
+        ->assertSee('Eliminar');
+
+    foreach ([$otro, $admin] as $persona) {
+        $this->actingAs($persona)->get(route('comercio.show', $comercio))
+            ->assertDontSee('data-resena-boton-editar', false)
+            ->assertDontSee('data-resena-editar', false);
+    }
+
+    // El admin sigue pudiendo eliminar.
+    $this->actingAs($admin)->get(route('comercio.show', $comercio))->assertSee('Eliminar');
+});
+
 test('la portada muestra el buscador público y los rubros', function () {
     $this->get('/')
         ->assertOk()
@@ -151,7 +200,7 @@ test('la portada muestra el buscador público y los rubros', function () {
         ->assertSee('Todo en un solo lugar');
 });
 
-test('al calificar, el cliente vuelve al perfil del comercio con un aviso y puede volver a calificar', function () {
+test('al calificar, el cliente vuelve al perfil con el aviso flotante y el formulario queda vacío', function () {
     $comercio = comercioParaResenas();
     $cliente = User::factory()->create(['role' => 'usuario']);
 
@@ -159,10 +208,13 @@ test('al calificar, el cliente vuelve al perfil del comercio con un aviso y pued
         ->followingRedirects()
         ->post(route('resenas.store', $comercio), ['calificacion' => 4, 'comentario' => 'Buen servicio'])
         ->assertOk()
-        ->assertSee('Gracias por tu calificación')
+        ->assertSee('¡Gracias por su comentario!')
+        ->assertSee('data-aviso-resena', false)
+        ->assertDontSee('Ver / editar mi reseña')
         ->assertSee('Panadería Don Julio')
         ->assertSee('data-resena-form', false)
-        ->assertSee('Actualizar mi calificación');
+        ->assertSee('Dejá tu calificación')
+        ->assertDontSee('Actualizar mi calificación');
 
     // Se puede repetir las veces que quiera: edita la misma reseña.
     $this->actingAs($cliente)->post(route('resenas.store', $comercio), ['calificacion' => 5, 'comentario' => 'Excelente']);

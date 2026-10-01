@@ -64,6 +64,10 @@ Route::middleware('auth')->group(function () {
         ->whereNumber('comercio')
         ->middleware('throttle:20,1')
         ->name('resenas.store');
+    Route::patch('/resenas/{resena}', [ResenaController::class, 'update'])
+        ->whereNumber('resena')
+        ->middleware('throttle:20,1')
+        ->name('resenas.update');
     Route::delete('/resenas/{resena}', [ResenaController::class, 'destroy'])
         ->whereNumber('resena')
         ->name('resenas.destroy');
