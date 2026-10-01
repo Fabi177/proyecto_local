@@ -191,6 +191,37 @@ test('en la lista, el autor ve "Editar" junto a "Eliminar"; los demás no ven "E
     $this->actingAs($admin)->get(route('comercio.show', $comercio))->assertSee('Eliminar');
 });
 
+test('el formulario para calificar aparece solo si el cliente todavía no tiene reseña en ese comercio', function () {
+    $comercio = comercioParaResenas();
+    $cliente = User::factory()->create(['role' => 'usuario']);
+    $otro = User::factory()->create(['role' => 'usuario']);
+
+    // Sin reseña: ve el formulario vacío.
+    $this->actingAs($cliente)->get(route('comercio.show', $comercio))
+        ->assertSee('data-resena-form', false)
+        ->assertSee('Dejá tu calificación')
+        ->assertDontSee('data-resena-ya-califico', false);
+
+    $resena = Resena::create(['comercio_id' => $comercio->id, 'user_id' => $cliente->id, 'calificacion' => 4, 'comentario' => 'Buen servicio']);
+
+    // Con reseña: ve el mensaje y el botón Editar, no el formulario.
+    $this->actingAs($cliente)->get(route('comercio.show', $comercio))
+        ->assertSee('data-resena-ya-califico', false)
+        ->assertSee('data-resena-boton-editar', false)
+        ->assertDontSee('data-resena-form', false);
+
+    // Otro cliente, que no reseñó este comercio, sí ve el formulario.
+    $this->actingAs($otro)->get(route('comercio.show', $comercio))
+        ->assertSee('data-resena-form', false)
+        ->assertDontSee('data-resena-ya-califico', false);
+
+    // Si borra su reseña, el formulario vuelve a aparecer.
+    $this->actingAs($cliente)->delete(route('resenas.destroy', $resena));
+    $this->actingAs($cliente)->get(route('comercio.show', $comercio))
+        ->assertSee('data-resena-form', false)
+        ->assertDontSee('data-resena-ya-califico', false);
+});
+
 test('la portada muestra el buscador público y los rubros', function () {
     $this->get('/')
         ->assertOk()
@@ -200,7 +231,7 @@ test('la portada muestra el buscador público y los rubros', function () {
         ->assertSee('Todo en un solo lugar');
 });
 
-test('al calificar, el cliente vuelve al perfil con el aviso flotante y el formulario queda vacío', function () {
+test('al calificar, el cliente vuelve al perfil con el aviso flotante y ya no ve el formulario para calificar', function () {
     $comercio = comercioParaResenas();
     $cliente = User::factory()->create(['role' => 'usuario']);
 
@@ -212,8 +243,8 @@ test('al calificar, el cliente vuelve al perfil con el aviso flotante y el formu
         ->assertSee('data-aviso-resena', false)
         ->assertDontSee('Ver / editar mi reseña')
         ->assertSee('Panadería Don Julio')
-        ->assertSee('data-resena-form', false)
-        ->assertSee('Dejá tu calificación')
+        ->assertSee('data-resena-ya-califico', false)
+        ->assertDontSee('data-resena-form', false)
         ->assertDontSee('Actualizar mi calificación');
 
     // Se puede repetir las veces que quiera: edita la misma reseña.

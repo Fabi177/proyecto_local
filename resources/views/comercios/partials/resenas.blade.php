@@ -3,8 +3,9 @@
 
     - Ver el promedio y leer los comentarios es PÚBLICO (también sin sesión).
     - Escribir exige sesión iniciada y cuenta de cliente (users.role = 'usuario').
-    - El formulario de arriba siempre aparece vacío (para calificar). Para modificar una reseña
-      propia se usa el botón "Editar" de la lista, que abre un formulario con estrellas y texto.
+    - Una sola reseña por cliente y comercio: el formulario de arriba (siempre vacío) aparece solo si
+      el cliente todavía no calificó. Para modificar la propia se usa el botón "Editar" de la lista,
+      que abre un formulario con estrellas y texto.
     - Del autor se muestra solo el nombre, nunca el correo.
     - Los comentarios se imprimen escapados con {{ }} (nunca como HTML).
 
@@ -44,40 +45,47 @@
             </div>
         @else
             @if ($usuario->esCliente())
-                <form method="POST" action="{{ route('resenas.store', $comercio) }}" class="space-y-3"
-                      x-data="{ nota: {{ $editFallo ? 0 : (int) old('calificacion', 0) }}, sobre: 0 }" data-resena-form>
-                    @csrf
-                    <h3 class="text-lg font-semibold text-gray-800">Dejá tu calificación</h3>
+                @if ($miResena)
+                    {{-- Ya calificó: una sola reseña por cliente y comercio. Para cambiarla, "Editar" en la lista. --}}
+                    <p class="rounded-lg bg-gray-50 p-4 text-gray-700" data-resena-ya-califico>
+                        Ya calificaste este comercio. Podés modificar tu reseña con el botón <strong>Editar</strong> de la lista de abajo.
+                    </p>
+                @else
+                    <form method="POST" action="{{ route('resenas.store', $comercio) }}" class="space-y-3"
+                          x-data="{ nota: {{ $editFallo ? 0 : (int) old('calificacion', 0) }}, sobre: 0 }" data-resena-form>
+                        @csrf
+                        <h3 class="text-lg font-semibold text-gray-800">Dejá tu calificación</h3>
 
-                    <div class="flex items-center gap-1" role="group" aria-label="Calificación de 1 a 5 estrellas" @mouseleave="sobre = 0">
-                        @foreach (range(1, 5) as $n)
-                            <button type="button" @click="nota = {{ $n }}" @mouseenter="sobre = {{ $n }}"
-                                    class="text-4xl leading-none transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--light-blue,#3498db)] rounded"
-                                    :class="(sobre || nota) >= {{ $n }} ? 'text-amber-400' : 'text-gray-300'"
-                                    :aria-pressed="nota === {{ $n }} ? 'true' : 'false'"
-                                    aria-label="{{ $n }} {{ $n === 1 ? 'estrella' : 'estrellas' }}">★</button>
-                        @endforeach
-                        <input type="hidden" name="calificacion" :value="nota">
-                    </div>
-                    @error('calificacion')
-                        <p class="text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-
-                    <div>
-                        <label for="comentario" class="sr-only">Comentario (opcional)</label>
-                        <textarea id="comentario" name="comentario" rows="3" maxlength="1000"
-                                  placeholder="Contá cómo fue tu experiencia (opcional)"
-                                  class="w-full rounded-lg border-gray-300 focus:border-[var(--primary-green,#2ecc71)] focus:ring-[var(--primary-green,#2ecc71)]">{{ $editFallo ? '' : old('comentario', '') }}</textarea>
-                        @error('comentario')
+                        <div class="flex items-center gap-1" role="group" aria-label="Calificación de 1 a 5 estrellas" @mouseleave="sobre = 0">
+                            @foreach (range(1, 5) as $n)
+                                <button type="button" @click="nota = {{ $n }}" @mouseenter="sobre = {{ $n }}"
+                                        class="text-4xl leading-none transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--light-blue,#3498db)] rounded"
+                                        :class="(sobre || nota) >= {{ $n }} ? 'text-amber-400' : 'text-gray-300'"
+                                        :aria-pressed="nota === {{ $n }} ? 'true' : 'false'"
+                                        aria-label="{{ $n }} {{ $n === 1 ? 'estrella' : 'estrellas' }}">★</button>
+                            @endforeach
+                            <input type="hidden" name="calificacion" :value="nota">
+                        </div>
+                        @error('calificacion')
                             <p class="text-sm text-red-600">{{ $message }}</p>
                         @enderror
-                        <p class="mt-1 text-xs text-gray-500">Se muestra tu nombre, nunca tu correo.</p>
-                    </div>
 
-                    <button type="submit" class="inline-flex items-center rounded-lg bg-[var(--primary-green,#2ecc71)] px-5 py-2 font-bold text-white shadow transition hover:bg-green-600">
-                        Publicar
-                    </button>
-                </form>
+                        <div>
+                            <label for="comentario" class="sr-only">Comentario (opcional)</label>
+                            <textarea id="comentario" name="comentario" rows="3" maxlength="1000"
+                                      placeholder="Contá cómo fue tu experiencia (opcional)"
+                                      class="w-full rounded-lg border-gray-300 focus:border-[var(--primary-green,#2ecc71)] focus:ring-[var(--primary-green,#2ecc71)]">{{ $editFallo ? '' : old('comentario', '') }}</textarea>
+                            @error('comentario')
+                                <p class="text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                            <p class="mt-1 text-xs text-gray-500">Se muestra tu nombre, nunca tu correo.</p>
+                        </div>
+
+                        <button type="submit" class="inline-flex items-center rounded-lg bg-[var(--primary-green,#2ecc71)] px-5 py-2 font-bold text-white shadow transition hover:bg-green-600">
+                            Publicar
+                        </button>
+                    </form>
+                @endif
             @elseif ($usuario->role === 'comerciante')
                 <p class="rounded-lg bg-gray-50 p-4 text-gray-600" data-resena-nota>Las calificaciones las dejan los clientes. Desde tu cuenta de comerciante podés leerlas.</p>
             @endif
