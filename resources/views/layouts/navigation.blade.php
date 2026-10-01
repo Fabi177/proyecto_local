@@ -29,6 +29,12 @@
                     </x-slot>
 
                     <x-slot name="content">
+                        @if (Auth::user()->esAdmin())
+                            <x-dropdown-link :href="route('admin.index')">
+                                Administración
+                            </x-dropdown-link>
+                        @endif
+
                         <x-dropdown-link :href="route('profile.edit')">
                             {{ __('Profile') }}
                         </x-dropdown-link>
@@ -71,6 +77,12 @@
             </div>
 
             <div class="mt-3 space-y-1">
+                @if (Auth::user()->esAdmin())
+                    <x-responsive-nav-link :href="route('admin.index')">
+                        Administración
+                    </x-responsive-nav-link>
+                @endif
+
                 <x-responsive-nav-link :href="route('profile.edit')">
                     {{ __('Profile') }}
                 </x-responsive-nav-link>

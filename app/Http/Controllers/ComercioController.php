@@ -321,12 +321,12 @@ class ComercioController extends Controller
     // -------------------------------------------------------------------
 
     /**
-     * Cada comerciante solo puede editar o eliminar SUS comercios.
+     * Cada comerciante solo puede editar o eliminar SUS comercios; el administrador puede con todos.
      * Si el comercio es de otro usuario respondemos 404 (no revelamos que existe).
      */
     private function autorizarComercio(Comercio $comercio): void
     {
-        abort_unless($comercio->user_id === Auth::id(), 404);
+        abort_unless($comercio->user_id === Auth::id() || Auth::user()->esAdmin(), 404);
     }
 
     // -------------------------------------------------------------------

@@ -11,7 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        // Solo administradores (ver App\Http\Middleware\SoloAdmin)
+        $middleware->alias([
+            'admin' => \App\Http\Middleware\SoloAdmin::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

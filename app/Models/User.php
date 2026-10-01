@@ -65,4 +65,13 @@ class User extends Authenticatable
     {
         return $this->hasMany(Comercio::class);
     }
+
+    /**
+     * ¿Es administrador? (users.role = 'admin'). El rol solo se asigna desde la consola:
+     * php artisan admin:promover correo@ejemplo.com
+     */
+    public function esAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
 }

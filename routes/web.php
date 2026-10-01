@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\NotasController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TareasController;
@@ -34,6 +35,13 @@ Route::get('/comercios/{comercio}', [ComercioController::class, 'show'])->name('
 // -------------------------------------------------------------------
 
 Route::get('/dashboard', function () {
+    // El administrador tiene su propio panel. Se conserva el mensaje (status) de la redirección anterior.
+    if (request()->user()->esAdmin()) {
+        session()->reflash();
+
+        return redirect()->route('admin.index');
+    }
+
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -81,9 +89,10 @@ Route::resource('notas', NotasController::class);
 Route::resource('tareas', TareasController::class);
 Route::resource('usuarios', UsuariosController::class);
 
-Route::prefix('admin')->group(function () {
-    Route::get('/usuarios', function () {
-        dd('Listado completo de usuarios');
-    })->name('admin.usuarios.index');
+// --- PANEL DE ADMINISTRACIÓN (solo administradores: 'auth' + 'admin') ---
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', [AdminController::class, 'index'])->name('index');
+    Route::get('/comercios', [AdminController::class, 'comercios'])->name('comercios');
+    Route::get('/usuarios', [AdminController::class, 'usuarios'])->name('usuarios');
 });
 
