@@ -74,4 +74,21 @@ class User extends Authenticatable
     {
         return $this->role === 'admin';
     }
+
+    /**
+     * Reseñas que escribió este usuario.
+     */
+    public function resenas(): HasMany
+    {
+        return $this->hasMany(Resena::class);
+    }
+
+    /**
+     * ¿Puede calificar y comentar comercios? Solo las cuentas de cliente (role = 'usuario').
+     * Los comerciantes no califican (ni siquiera comercios ajenos) y el admin solo modera.
+     */
+    public function esCliente(): bool
+    {
+        return $this->role === 'usuario';
+    }
 }

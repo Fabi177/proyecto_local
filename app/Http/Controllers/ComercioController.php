@@ -177,8 +177,19 @@ class ComercioController extends Controller
      */
     public function show(Comercio $comercio): View
     {
+        $usuario = Auth::user();
+
         return view('comercios.show', array_merge(
-            ['comercio' => $comercio],
+            [
+                'comercio' => $comercio,
+                // Calificaciones y comentarios: se leen sin sesión; solo se escribe con sesión de cliente.
+                'resenas' => $comercio->resenas()->with('user:id,name')->latest()->paginate(10)->fragment('resenas'),
+                'promedio' => (float) $comercio->resenas()->avg('calificacion'),
+                'totalResenas' => $comercio->resenas()->count(),
+                'miResena' => $usuario?->esCliente()
+                    ? $comercio->resenas()->where('user_id', $usuario->id)->first()
+                    : null,
+            ],
             $this->datosVolverABusqueda(),
             // El buscador y el botón "Volver" son para el cliente, no para el comerciante.
             ['mostrarBuscador' => Auth::user()?->role !== 'comerciante']

@@ -238,6 +238,9 @@
 
             </div> <!-- Fin Grid -->
         </div>
+
+        <!-- Calificaciones y comentarios -->
+        @include('comercios.partials.resenas')
     </div>
 </div>
 

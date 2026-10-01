@@ -30,66 +30,130 @@
             body {
                 font-family: 'Inter', sans-serif;
             }
+
+            /* ===== Portada: foto de L. N. Alem + buscador ===== */
+            .hero { position: relative; min-height: 100vh; display: flex; flex-direction: column; color: #fff; background: #0c0a09;
+                --barra: 7rem;
+                /* tamaño que ocupa la foto (cover) y posición de la línea bajo "L. N. ALEM" (43,14 % de la foto, alineada al 30 %) */
+                --foto: max(100vh, calc(100vw / 2));
+                --linea: calc((100vh - var(--foto)) * .3 + var(--foto) * .4314); }
+            .hero-fondo { position: absolute; top: 0; left: 0; right: 0; height: 100vh; overflow: hidden; z-index: 0;
+                background: #222 url("{{ asset('imagenes/fondo.jpg') }}") center 30% / cover no-repeat; }
+            /* degradé: deja ver las letras de la foto arriba y oscurece abajo, donde va el buscador */
+            .hero-fondo::after { content: ""; position: absolute; inset: 0;
+                background: linear-gradient(180deg, rgba(0,0,0,.25) 0%, rgba(0,0,0,.45) 30%, rgba(0,0,0,.72) 60%, rgba(0,0,0,.88) 100%); }
+            .hero-barra { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 2rem; }
+            .hero-barra img { height: 4.5rem; width: auto; display: block; }
+            .hero-barra nav { display: flex; gap: .75rem; align-items: center; }
+            .hero-barra nav a { text-decoration: none; font-weight: 600; font-size: .875rem; padding: .625rem .875rem; border-radius: .375rem; color: #fff; }
+            .hero-barra nav a:hover { background: rgba(255,255,255,.12); }
+            .hero-barra nav a.registro { background: #fff; color: #2ecc71; }
+            .hero-barra nav a.registro:hover { background: #f3f4f6; }
+
+            .hero-centro { position: relative; z-index: 2; flex: 1; display: flex; flex-direction: column; justify-content: flex-start; align-items: center;
+                text-align: center; padding: max(1rem, calc(var(--linea) + 1.75rem - var(--barra))) 1.25rem 4vh; }
+            .hero-centro h1 { margin: 0; font-weight: 900; letter-spacing: -.02em; line-height: 1.05; font-size: clamp(2rem, 4.6vw, 3.6rem); text-shadow: 0 2px 12px rgba(0,0,0,.5); }
+            .hero-centro p.sub { margin: .8rem 0 1.4rem; font-size: clamp(1rem, 1.6vw, 1.2rem); color: #f3f4f6; text-shadow: 0 1px 6px rgba(0,0,0,.5); }
+
+            .hero-buscador { position: relative; width: min(44rem, 100%); text-align: left; }
+            .hero-campo { display: flex; align-items: center; background: #fff; border-radius: 999px; box-shadow: 0 10px 30px rgba(0,0,0,.45); border: 3px solid transparent; }
+            .hero-campo:focus-within { border-color: #2ecc71; }
+            .hero-campo button { flex: none; display: grid; place-items: center; width: 3.4rem; height: 3.4rem; margin: .2rem; border: 0; cursor: pointer; border-radius: 50%; background: #2ecc71; color: #fff; }
+            .hero-campo input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 1.05rem; color: #111827; padding: 1rem 1.25rem 1rem .75rem; box-shadow: none; }
+            .hero-campo input:focus { outline: 0; box-shadow: none; }
+            .hero-campo input::placeholder { color: #6b7280; }
+            .hero-sug { position: absolute; left: 0; right: 0; top: calc(100% + .5rem); z-index: 10; margin: 0; padding: .35rem; list-style: none; background: #fff; color: #1f2937;
+                border-radius: 1rem; box-shadow: 0 18px 40px rgba(0,0,0,.4); max-height: 22rem; overflow-y: auto; }
+            .hero-sug[hidden] { display: none; }
+            .hero-sug li a { display: flex; align-items: center; gap: .75rem; padding: .6rem .75rem; border-radius: .65rem; text-decoration: none; color: inherit; }
+            .hero-sug li[aria-selected="true"] a, .hero-sug li a:hover { background: #f3f4f6; }
+            .hero-sug .ini { flex: none; width: 2.5rem; height: 2.5rem; border-radius: .5rem; background: #e5e7eb; display: grid; place-items: center; font-weight: 700; color: #6b7280; overflow: hidden; }
+            .hero-sug .ini img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+            .hero-sug b { display: block; font-weight: 600; }
+            .hero-sug small { display: block; color: #6b7280; }
+            .hero-sug .vacio { padding: .8rem .9rem; color: #6b7280; font-size: .9rem; }
+
+            .hero-rubros { display: flex; flex-wrap: wrap; justify-content: center; gap: .6rem; margin: 1.2rem 0 0; padding: 0; list-style: none; }
+            .hero-rubros a { display: inline-flex; gap: .45rem; align-items: center; text-decoration: none; color: #fff; font-weight: 600; font-size: .9rem; padding: .55rem 1rem; border-radius: 999px;
+                background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.38); backdrop-filter: blur(4px); }
+            .hero-rubros a:hover { background: rgba(255,255,255,.28); }
+            .hero-todos { margin-top: 1rem; font-weight: 600; font-size: .9rem; color: #fff; }
+            .hero-comerciante { margin-top: 1.5rem; font-size: .95rem; color: #e5e7eb; }
+            .hero-comerciante a { font-weight: 700; color: #fff; text-underline-offset: 3px; }
+
+            @media (max-height: 760px) and (min-width: 641px) {
+                .hero-centro h1 { font-size: clamp(1.8rem, 3.6vw, 2.6rem); }
+                .hero-centro p.sub { margin: .5rem 0 1rem; }
+                .hero-rubros { margin-top: .8rem; }
+                .hero-comerciante { margin-top: 1rem; }
+                .hero-campo button { width: 3rem; height: 3rem; }
+            }
+            @media (max-width: 640px) {
+                .hero { --barra: 5.4rem; }
+                .hero-barra { padding: 1rem; }
+                .hero-barra img { height: 3.4rem; }
+                .hero-campo input { font-size: 1rem; }
+            }
         </style>
     </head>
     <body class="bg-white dark:bg-gray-900 antialiased">
 
         <div class="relative min-h-screen w-full">
 
-            <!-- ================================= --><!-- ===== NAVEGACIÓN (HEADER) ===== --><!-- ================================= --><header class="absolute inset-x-0 top-0 z-50">
-                <nav class="flex items-center justify-between p-6 lg:px-8" aria-label="Global">
-                    <!-- Logo/Título --><div class="flex lg:flex-1">
-                        <a href="{{ url('/') }}" class="-m-1.5 p-1.5">
-                            <h1><img src="{{ asset('imagenes/logo.png') }}" alt="LocalCommers" class="h-20 w-auto"></h1>
-                        </a>
-                    </div>
+            <!-- ================================= --><!-- ===== PORTADA: FOTO + BUSCADOR ===== --><!-- ================================= -->
+            <header class="hero">
+                <div class="hero-fondo" role="img" aria-label="Vista aérea de Leandro N. Alem al atardecer"></div>
 
-                    <!-- Botones de Autenticación (Derecha) --><div class="flex lg:flex-1 justify-end gap-x-4">
+                <div class="hero-barra">
+                    <a href="{{ url('/') }}" aria-label="LocalCommers, inicio"><img src="{{ asset('imagenes/logo.png') }}" alt="LocalCommers"></a>
+                    <nav aria-label="Cuenta">
                         @if (Route::has('login'))
                             @auth
-                                <a href="{{ url('/dashboard') }}" class="rounded-md px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-white/10">Mi Panel</a>
+                                <a href="{{ url('/dashboard') }}">Mi Panel</a>
                             @else
-                                <a href="{{ route('login') }}" class="rounded-md px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-white/10">Ingresar</a>
+                                <a href="{{ route('login') }}">Ingresar</a>
                                 @if (Route::has('register'))
-                                    <a href="{{ route('register') }}" class="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-brand-green shadow-sm hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">Registrarse</a>
+                                    <a href="{{ route('register') }}" class="registro">Registrarse</a>
                                 @endif
                             @endauth
                         @endif
+                    </nav>
+                </div>
+
+                <div class="hero-centro">
+                    <h1>Conecta, Descubre, Crece.</h1>
+                    <p class="sub">Busca comercios, servicios y rubros de L. N. Alem.</p>
+
+                    <!-- Buscador público: no pide registrarse -->
+                    <div class="hero-buscador" id="hero-buscador">
+                        <form action="{{ route('comercios.index') }}" method="GET" role="search">
+                            <div class="hero-campo">
+                                <input id="hero-q" type="search" name="search" autocomplete="off" role="combobox"
+                                       aria-autocomplete="list" aria-expanded="false" aria-controls="hero-sug"
+                                       aria-label="Buscar comercios" placeholder="Buscar Restaurantes, Ferreterías, Servicios...">
+                                <button type="submit" aria-label="Buscar">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                                </button>
+                            </div>
+                        </form>
+                        <ul class="hero-sug" id="hero-sug" role="listbox" aria-label="Sugerencias de comercios" hidden></ul>
                     </div>
-                </nav>
+
+                    <ul class="hero-rubros" aria-label="Rubros populares">
+                        <li><a href="{{ route('comercios.index', ['rubro' => 'Restaurante']) }}">🍽️ Restaurantes</a></li>
+                        <li><a href="{{ route('comercios.index', ['rubro' => 'Indumentaria']) }}">👕 Indumentaria</a></li>
+                        <li><a href="{{ route('comercios.index', ['rubro' => 'Farmacia']) }}">⚕️ Farmacias</a></li>
+                        <li><a href="{{ route('comercios.index', ['rubro' => 'Ferreteria']) }}">🛠️ Ferreterías</a></li>
+                    </ul>
+                    <a class="hero-todos" href="{{ route('comercios.index') }}">Ver todos los comercios</a>
+
+                    @guest
+                        <p class="hero-comerciante">¿Tienes un comercio? <a href="{{ route('register') }}">Súmalo a LocalCommers</a></p>
+                    @endguest
+                </div>
             </header>
 
             <main>
-                <!-- ================================= --><!-- ===== SECCIÓN HERO (PRINCIPAL) ===== --><!-- ================================= --><div class="relative isolate overflow-hidden pt-14">
-
-                    <img src="../../imagenes/fondo.jpg" alt="Fondo de comercios" class="absolute inset-0 -z-20 h-full w-full object-cover">
-
-                    <div class="absolute inset-0 -z-10 bg-black/60"></div>
-
-                    <!--
-                        CAMBIO:
-                        Se aumentó el padding (py-56 a py-64)
-                        para bajar el texto BLANCO AÚN MÁS y no tapar el texto de la imagen.
-                    --><div class="mx-auto max-w-2xl py-64 sm:py-72 lg:py-80 text-center"> <!-- CAMBIO DE PADDING --><!-- Título y Tagline --><h1 class="text-4xl font-black tracking-tight text-white sm:text-6xl" style="text-shadow: 0 2px 10px rgba(0,0,0,0.3)">
-                            Conecta, Descubre, Crece.
-                        </h1>
-                        <p class="mt-6 text-lg leading-8 text-gray-100" style="text-shadow: 0 1px 5px rgba(0,0,0,0.3)">
-                            La plataforma donde comerciantes y clientes se encuentran.
-                        </p>
-
-                        <!-- Botones de CTA (Solo para visitantes) -->@guest
-                        <div class="mt-10 flex items-center justify-center gap-x-6">
-                            <a href="{{ route('register') }}" class="rounded-md bg-white px-5 py-3 text-base font-semibold text-brand-green shadow-lg hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white transition-transform hover:scale-105">
-                                Registrarme Ahora
-                            </a>
-                            <a href="{{ route('login') }}" class="text-base font-semibold leading-6 text-white hover:text-gray-200">
-                                Ingresar <span aria-hidden="true">&rarr;</span>
-                            </a>
-                        </div>
-                        @endguest
-                    </div>
-                </div>
-
                 <!-- ================================= --><!-- ===== SECCIÓN DE CARACTERÍSTICAS ===== --><!-- ================================= --><div class="py-24 sm:py-32 bg-white dark:bg-gray-900">
                     <div class="mx-auto max-w-7xl px-6 lg:px-8">
                         <h2 class="text-center text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
@@ -163,6 +227,64 @@
             </footer>
         </div>
 
+
+        <script>
+            // Sugerencias en vivo del buscador de la portada (usa la ruta pública comercios.sugerencias).
+            (function () {
+                var URL_SUG = @json(route('comercios.sugerencias'));
+                var q = document.getElementById('hero-q');
+                var lista = document.getElementById('hero-sug');
+                var caja = document.getElementById('hero-buscador');
+                var items = [], activo = -1, timer = null, ctl = null;
+
+                function cerrar() { lista.hidden = true; q.setAttribute('aria-expanded', 'false'); activo = -1; }
+                function marcar() {
+                    Array.prototype.forEach.call(lista.querySelectorAll('li[role=option]'), function (li, i) {
+                        li.setAttribute('aria-selected', i === activo ? 'true' : 'false');
+                    });
+                }
+                function pintar(datos) {
+                    items = datos; lista.textContent = ''; activo = -1;
+                    datos.forEach(function (x) {
+                        var li = document.createElement('li'), a = document.createElement('a'), ini = document.createElement('span'),
+                            w = document.createElement('span'), b = document.createElement('b'), s = document.createElement('small');
+                        li.setAttribute('role', 'option'); a.href = x.url; ini.className = 'ini';
+                        if (x.logo) { var im = document.createElement('img'); im.src = x.logo; im.alt = ''; ini.appendChild(im); }
+                        else { ini.textContent = String(x.nombre || '?').charAt(0).toUpperCase(); }
+                        b.textContent = x.nombre; s.textContent = [x.rubro, x.direccion].filter(Boolean).join(' · ');
+                        w.appendChild(b); w.appendChild(s); a.appendChild(ini); a.appendChild(w); li.appendChild(a); lista.appendChild(li);
+                    });
+                    if (!datos.length) {
+                        var v = document.createElement('li'); v.className = 'vacio'; v.textContent = 'No encontramos sugerencias. Presiona Enter para buscar igual.'; lista.appendChild(v);
+                    }
+                    lista.hidden = false; q.setAttribute('aria-expanded', 'true');
+                }
+                function buscar() {
+                    var t = q.value.trim();
+                    if (t.length < 2) { cerrar(); return; }
+                    if (ctl) ctl.abort();
+                    ctl = new AbortController();
+                    fetch(URL_SUG + '?q=' + encodeURIComponent(t), { signal: ctl.signal, headers: { 'Accept': 'application/json' } })
+                        .then(function (r) { return r.ok ? r.json() : { sugerencias: [] }; })
+                        .then(function (j) { pintar(j.sugerencias || []); })
+                        .catch(function (e) { if (e.name !== 'AbortError') cerrar(); });
+                }
+                q.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(buscar, 200); });
+                q.addEventListener('focus', function () { if (lista.children.length) lista.hidden = false; });
+                q.addEventListener('keydown', function (e) {
+                    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                        if (!items.length || lista.hidden) return;
+                        e.preventDefault();
+                        var d = e.key === 'ArrowDown' ? 1 : -1;
+                        activo = activo === -1 ? (d > 0 ? 0 : items.length - 1) : (activo + d + items.length) % items.length;
+                        marcar();
+                    } else if (e.key === 'Enter' && activo > -1 && items[activo]) {
+                        e.preventDefault(); window.location.href = items[activo].url;
+                    } else if (e.key === 'Escape' || e.key === 'Tab') { cerrar(); }
+                });
+                document.addEventListener('click', function (e) { if (!caja.contains(e.target)) cerrar(); });
+            })();
+        </script>
     </body>
 </html>
 

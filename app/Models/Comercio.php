@@ -122,4 +122,12 @@ class Comercio extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * Reseñas (calificación + comentario) que dejaron los clientes.
+     */
+    public function resenas(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Resena::class);
+    }
 }

@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\NotasController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ResenaController;
 use App\Http\Controllers\TareasController;
 use App\Http\Controllers\UsuariosController;
 use App\Http\Controllers\ComercioController; // <-- Importación
@@ -57,6 +58,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // --- CALIFICACIONES Y COMENTARIOS (leer es público; escribir exige login y cuenta de cliente) ---
+    Route::post('/comercios/{comercio}/resenas', [ResenaController::class, 'store'])
+        ->whereNumber('comercio')
+        ->middleware('throttle:20,1')
+        ->name('resenas.store');
+    Route::delete('/resenas/{resena}', [ResenaController::class, 'destroy'])
+        ->whereNumber('resena')
+        ->name('resenas.destroy');
 
     // --- RUTAS DE GESTIÓN DE COMERCIO (Para Comerciantes) ---
 

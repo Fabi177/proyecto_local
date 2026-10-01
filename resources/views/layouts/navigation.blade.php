@@ -3,7 +3,7 @@
         <div class="flex justify-between h-16">
             <div class="flex">
                 <div class="shrink-0 flex items-center">
-                    <a href="{{ route('dashboard') }}"
+                    <a href="{{ auth()->check() ? route('dashboard') : url('/') }}"
                        class="inline-flex items-center h-full border-b-2 transition duration-150 ease-in-out
                        {{ request()->routeIs('dashboard')
                           ? 'border-white'  /* ESTADO ACTIVO */
@@ -14,6 +14,16 @@
                 </div>
             </div>
 
+            @guest
+                <div class="hidden sm:flex sm:items-center sm:ms-6 gap-2">
+                    <a href="{{ route('login') }}" class="px-3 py-2 text-sm font-semibold text-white hover:bg-white/10 rounded-md">Ingresar</a>
+                    @if (Route::has('register'))
+                        <a href="{{ route('register') }}" class="px-3 py-2 text-sm font-semibold bg-white text-[var(--primary-green)] rounded-md hover:bg-gray-100">Registrarse</a>
+                    @endif
+                </div>
+            @endguest
+
+            @auth
             <div class="hidden sm:flex sm:items-center sm:ms-6">
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
@@ -51,6 +61,7 @@
                     </x-slot>
                 </x-dropdown>
             </div>
+            @endauth
 
             <div class="-me-2 flex items-center sm:hidden">
                 <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-white/80 hover:text-white hover:bg-white/20 focus:outline-none focus:bg-white/20 focus:text-white transition duration-150 ease-in-out">
@@ -65,11 +76,21 @@
 
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden bg-white shadow-md border-t border-gray-100">
         <div class="pt-2 pb-3 space-y-1">
-            <a href="{{ route('dashboard') }}" class="block px-4 py-1 bg-gradient-to-r from-[var(--light-blue)] to-[var(--primary-green)]">
+            <a href="{{ auth()->check() ? route('dashboard') : url('/') }}" class="block px-4 py-1 bg-gradient-to-r from-[var(--light-blue)] to-[var(--primary-green)]">
                 <x-application-logo class="block h-14 w-auto" />
             </a>
         </div>
 
+        @guest
+            <div class="pt-2 pb-3 border-t border-gray-200 space-y-1">
+                <x-responsive-nav-link :href="route('login')">Ingresar</x-responsive-nav-link>
+                @if (Route::has('register'))
+                    <x-responsive-nav-link :href="route('register')">Registrarse</x-responsive-nav-link>
+                @endif
+            </div>
+        @endguest
+
+        @auth
         <div class="pt-4 pb-1 border-t border-gray-200">
             <div class="px-4">
                 <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
@@ -98,5 +119,6 @@
                 </form>
             </div>
         </div>
+        @endauth
     </div>
 </nav>
