@@ -29,10 +29,6 @@
         @endif
     </div>
 
-    @if (session('status_resena'))
-        <p class="mt-4 rounded-lg bg-green-100 px-4 py-2 text-sm font-medium text-green-800" role="status">{{ session('status_resena') }}</p>
-    @endif
-
     <!-- Escribir: solo clientes con sesión iniciada -->
     <div class="mt-6 border-t pt-6">
         @guest

@@ -121,7 +121,7 @@
                     @include('comercios.partials.selector-dias-no-laborales')
 
                     <div class="input-wrapper">
-                        <label for="telefono" class="input-label">{{ __('Teléfono') }}</label>
+                        <label for="telefono" class="input-label">{{ __('Teléfono fijo / sin WhatsApp') }}</label>
                         <div class="input-field-container">
                             <svg class="input-icon w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-2.63C11.24 16.088 9.917 14.76 8.163 12.998l1.293-.97c.362-.271.527-.734.417-1.173L8.756 6.463c-.125-.501-.575-.852-1.091-.852H6.375A2.25 2.25 0 0 0 4.125 7.875v.375Z" /></svg>
                             <x-text-input id="telefono" class="w-full input-field" type="text" name="telefono" :value="old('telefono')" placeholder="Ej: 11-5555-1234" />

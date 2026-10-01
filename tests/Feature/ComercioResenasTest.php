@@ -58,7 +58,7 @@ test('un cliente puede calificar y comentar', function () {
 
     $this->actingAs($cliente)
         ->post(route('resenas.store', $comercio), ['calificacion' => 5, 'comentario' => '  Excelente atención  '])
-        ->assertRedirect(route('comercio.show', $comercio).'#resenas');
+        ->assertRedirect(route('comercio.show', $comercio));
 
     $resena = Resena::first();
     expect($resena->user_id)->toBe($cliente->id)
@@ -149,4 +149,52 @@ test('la portada muestra el buscador público y los rubros', function () {
         ->assertSee(json_encode(route('comercios.sugerencias')), false)
         ->assertSee('rubro=Restaurante', false)
         ->assertSee('Todo en un solo lugar');
+});
+
+test('al calificar, el cliente vuelve al perfil del comercio con un aviso y puede volver a calificar', function () {
+    $comercio = comercioParaResenas();
+    $cliente = User::factory()->create(['role' => 'usuario']);
+
+    $this->actingAs($cliente)
+        ->followingRedirects()
+        ->post(route('resenas.store', $comercio), ['calificacion' => 4, 'comentario' => 'Buen servicio'])
+        ->assertOk()
+        ->assertSee('Gracias por tu calificación')
+        ->assertSee('Panadería Don Julio')
+        ->assertSee('data-resena-form', false)
+        ->assertSee('Actualizar mi calificación');
+
+    // Se puede repetir las veces que quiera: edita la misma reseña.
+    $this->actingAs($cliente)->post(route('resenas.store', $comercio), ['calificacion' => 5, 'comentario' => 'Excelente']);
+    expect(Resena::count())->toBe(1)->and(Resena::first()->calificacion)->toBe(5);
+});
+
+test('el perfil dice "sin WhatsApp" solo cuando el comercio no cargó WhatsApp', function () {
+    $sinWhatsapp = comercioParaResenas(['telefono' => '3754 457625']);
+
+    $this->get(route('comercio.show', $sinWhatsapp))
+        ->assertOk()
+        ->assertSee('Teléfono / sin WhatsApp')
+        ->assertSee('3754 457625');
+
+    $conWhatsapp = comercioParaResenas(['telefono' => '3754 457625', 'red_whatsapp' => '+54 9 3754 111111']);
+
+    $this->get(route('comercio.show', $conWhatsapp))
+        ->assertOk()
+        ->assertSee('3754 457625')
+        ->assertDontSee('sin WhatsApp');
+});
+
+test('los formularios del comerciante llaman al campo "Teléfono fijo / sin WhatsApp"', function () {
+    $comercio = comercioParaResenas();
+
+    $this->actingAs($comercio->user)
+        ->get(route('comercio.edit', $comercio))
+        ->assertOk()
+        ->assertSee('Teléfono fijo / sin WhatsApp');
+
+    $this->actingAs($comercio->user)
+        ->get(route('comercio.create'))
+        ->assertOk()
+        ->assertSee('Teléfono fijo / sin WhatsApp');
 });

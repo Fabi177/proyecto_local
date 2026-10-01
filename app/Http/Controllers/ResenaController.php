@@ -39,7 +39,7 @@ class ResenaController extends Controller
         );
 
         return redirect()
-            ->to(route('comercio.show', $comercio).'#resenas')
+            ->route('comercio.show', $comercio)
             ->with('status_resena', $resena->wasRecentlyCreated ? '¡Gracias por tu calificación!' : 'Actualizamos tu calificación.');
     }
 
@@ -53,7 +53,7 @@ class ResenaController extends Controller
         $resena->delete();
 
         return redirect()
-            ->to(route('comercio.show', $comercioId).'#resenas')
+            ->route('comercio.show', $comercioId)
             ->with('status_resena', 'La reseña se eliminó.');
     }
 }

@@ -45,6 +45,14 @@
 
 <div class="py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        @if (session('status_resena'))
+            <!-- Aviso al volver de calificar o borrar una reseña -->
+            <div class="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-green-100 px-4 py-3 text-green-800 shadow" role="status">
+                <span class="font-medium">{{ session('status_resena') }}</span>
+                <a href="#resenas" class="text-sm font-semibold underline">Ver / editar mi reseña</a>
+            </div>
+        @endif
+
         <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
             <!-- Contenedor del perfil: dividido en 2 columnas -->
             <div class="grid grid-cols-1 md:grid-cols-3">
@@ -95,7 +103,11 @@
                     @if ($comercio->telefono)
                         <div class="flex items-center mt-3">
                             <svg class="w-5 h-5 text-gray-500 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-2.63C11.24 16.088 9.917 14.76 8.163 12.998l1.293-.97c.362-.271.527-.734.417-1.173L8.756 6.463c-.125-.501-.575-.852-1.091-.852H6.375A2.25 2.25 0 0 0 4.125 7.875v.375Z" /></svg>
-                            <span class="text-gray-700">{{ $comercio->telefono }}</span>
+                            <div>
+                                <!-- Si no hay WhatsApp cargado, el teléfono es el único contacto directo y se aclara -->
+                                <p class="text-xs text-gray-500">{{ $comercio->red_whatsapp ? 'Teléfono' : 'Teléfono / sin WhatsApp' }}</p>
+                                <span class="text-gray-700">{{ $comercio->telefono }}</span>
+                            </div>
                         </div>
                     @endif
 
