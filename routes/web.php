@@ -35,16 +35,9 @@ Route::get('/comercios/{comercio}', [ComercioController::class, 'show'])->name('
 // --- RUTAS DE AUTENTICACIÓN Y PANEL ---
 // -------------------------------------------------------------------
 
-Route::get('/dashboard', function () {
-    // El administrador tiene su propio panel. Se conserva el mensaje (status) de la redirección anterior.
-    if (request()->user()->esAdmin()) {
-        session()->reflash();
-
-        return redirect()->route('admin.index');
-    }
-
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+// /dashboard es público: visitantes y clientes ven el buscador y todos los comercios;
+// el comerciante ve su panel y el administrador es llevado al suyo (lógica en el controlador).
+Route::get('/dashboard', [ComercioController::class, 'dashboard'])->name('dashboard');
 
 require __DIR__.'/auth.php';
 

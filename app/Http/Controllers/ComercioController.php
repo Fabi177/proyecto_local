@@ -6,6 +6,7 @@ use App\Models\Comercio;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -15,45 +16,98 @@ class ComercioController extends Controller
     /**
      * Muestra la lista pública de comercios (con filtros).
      *
-     * Se ha mejorado el filtro 'search' para incluir el campo 'rubro'.
+     * El filtro "rubro" acepta uno (?rubro=Cafe) o varios (?rubro[]=Cafe&rubro[]=Farmacia).
      */
     public function index(Request $request): View
     {
-        // 1. Iniciar la consulta con los más nuevos primero
-        $query = Comercio::latest();
+        $filtros = $this->filtrosDeBusqueda($request);
 
-        // 2. Aplicar filtro de búsqueda general (Nombre O Descripción O RUBRO)
-        $query->when($request->input('search'), function ($query, $searchTerm) {
+        return view('comercios.index', [
+            'comercios' => $this->consultaComercios($filtros)->paginate(12)->withQueryString(),
+            'filters' => $filtros,
+        ]);
+    }
+
+    /**
+     * /dashboard: lo puede ver cualquiera.
+     *
+     * - Administrador: se lo lleva a su panel.
+     * - Comerciante: ve su panel (la vista decide, no necesita el listado).
+     * - Visitante o cliente: ve el buscador, el filtro por rubro y todos los comercios.
+     */
+    public function dashboard(Request $request): View|RedirectResponse
+    {
+        $usuario = $request->user();
+
+        if ($usuario && $usuario->esAdmin()) {
+            // Se conserva el mensaje (status) de la redirección anterior.
+            session()->reflash();
+
+            return redirect()->route('admin.index');
+        }
+
+        $filtros = $this->filtrosDeBusqueda($request);
+        $esComerciante = $usuario && $usuario->role === 'comerciante';
+
+        return view('dashboard', [
+            'comercios' => $esComerciante ? null : $this->consultaComercios($filtros)->paginate(12)->withQueryString(),
+            'filters' => $filtros,
+            'rubros' => Comercio::RUBROS,
+        ]);
+    }
+
+    /**
+     * Toma del pedido el texto buscado y los rubros elegidos, ya limpios.
+     * Solo devuelve las claves que tienen algo ('search' y/o 'rubro').
+     */
+    private function filtrosDeBusqueda(Request $request): array
+    {
+        $search = $request->input('search');
+        $search = is_string($search) ? trim($search) : '';
+
+        $rubros = collect(Arr::wrap($request->input('rubro')))
+            ->filter(fn ($rubro) => is_string($rubro) && trim($rubro) !== '')
+            ->map(fn ($rubro) => trim($rubro))
+            ->unique()
+            ->values()
+            ->all();
+
+        return array_filter(
+            ['search' => $search, 'rubro' => $rubros],
+            fn ($valor) => $valor !== '' && $valor !== []
+        );
+    }
+
+    /**
+     * Consulta de comercios con los filtros aplicados (más nuevos primero),
+     * con el promedio y la cantidad de reseñas para mostrar las estrellas.
+     */
+    private function consultaComercios(array $filtros)
+    {
+        $query = Comercio::latest()
+            ->withAvg('resenas', 'calificacion')
+            ->withCount('resenas');
+
+        // Búsqueda general: nombre, descripción o rubro.
+        $query->when($filtros['search'] ?? null, function ($query, $searchTerm) {
             $query->where(function ($q) use ($searchTerm) {
-                // Limpiamos el término de búsqueda (espacios y minúsculas)
                 $searchTerm = strtolower(trim($searchTerm));
 
-                // Comparamos la columna (limpiada con TRIM y LOWER) con el término
-                // AHORA INCLUYE EL RUBRO EN LA BÚSQUEDA GENERAL
                 $q->whereRaw('LOWER(TRIM(nombre)) LIKE ?', ["%{$searchTerm}%"])
                   ->orWhereRaw('LOWER(TRIM(descripcion)) LIKE ?', ["%{$searchTerm}%"])
-                  ->orWhereRaw('LOWER(TRIM(rubro)) LIKE ?', ["%{$searchTerm}%"]); // <<< CAMBIO CLAVE
+                  ->orWhereRaw('LOWER(TRIM(rubro)) LIKE ?', ["%{$searchTerm}%"]);
             });
         });
 
-        // 3. Aplicar filtro por rubro (Categoría) - (Condición AND)
-        // Este filtro se mantiene para búsquedas exactas (ej: si se hace clic en un tag/enlace de categoría)
-        $query->when($request->input('rubro'), function ($query, $rubro) {
-            // Limpiamos el término del rubro (espacios y minúsculas)
-            $rubroTerm = strtolower(trim($rubro));
+        // Filtro por rubro (uno o varios): el comercio tiene que estar en alguno de los elegidos.
+        $query->when($filtros['rubro'] ?? null, function ($query, $rubros) {
+            $rubros = array_map(fn ($rubro) => mb_strtolower(trim($rubro)), $rubros);
+            $marcas = implode(',', array_fill(0, count($rubros), '?'));
 
-            // Comparamos la columna (limpiada con TRIM y LOWER) con el término
-            $query->whereRaw('LOWER(TRIM(rubro)) = ?', [$rubroTerm]);
+            $query->whereRaw("LOWER(TRIM(rubro)) IN ({$marcas})", $rubros);
         });
 
-        // 4. Ejecutar la consulta y paginar
-        $comercios = $query->paginate(12);
-
-        // 5. Enviar los comercios y los filtros a la vista
-        return view('comercios.index', [
-            'comercios' => $comercios,
-            'filters' => $request->only(['search', 'rubro'])
-        ]);
+        return $query;
     }
 
     /**
@@ -199,33 +253,56 @@ class ComercioController extends Controller
     /**
      * Arma el enlace para "Volver a los resultados".
      *
-     * Si el cliente llegó al perfil desde el buscador (/comercios), se vuelve a esa
-     * misma búsqueda (mismo texto, rubro y página). Si no, se vuelve al buscador
-     * sin filtros. Solo se toman los filtros conocidos de la URL anterior, nunca
-     * la URL completa, así que no se puede usar para redirigir a otro sitio.
+     * Si el cliente llegó al perfil desde el buscador (/comercios) o desde el dashboard
+     * (/dashboard), se vuelve a esa misma búsqueda (mismo texto, rubros y página). Si no,
+     * se vuelve al buscador sin filtros. Solo se toman los filtros conocidos de la URL
+     * anterior, nunca la URL completa, así que no se puede usar para redirigir a otro sitio.
      *
      * @return array{volverUrl: string, terminoBuscado: string|null}
      */
     private function datosVolverABusqueda(): array
     {
         $previa = parse_url(url()->previous()) ?: [];
-        $buscador = parse_url(route('comercios.index'));
 
-        $vieneDelBuscador = ($previa['host'] ?? null) === ($buscador['host'] ?? null)
-            && rtrim($previa['path'] ?? '', '/') === rtrim($buscador['path'] ?? '', '/');
+        // ¿La página anterior fue una de las que buscan? Si sí, se vuelve a esa misma.
+        $rutaVuelta = 'comercios.index';
+        $vieneDeBusqueda = false;
+        foreach (['comercios.index', 'dashboard'] as $ruta) {
+            $conocida = parse_url(route($ruta));
 
-        $filtros = [];
-        if ($vieneDelBuscador) {
-            parse_str($previa['query'] ?? '', $consulta);
-            $filtros = array_filter(
-                array_intersect_key($consulta, array_flip(['search', 'rubro', 'page'])),
-                fn ($valor) => is_string($valor) && trim($valor) !== ''
-            );
+            if (($previa['host'] ?? null) === ($conocida['host'] ?? null)
+                && rtrim($previa['path'] ?? '', '/') === rtrim($conocida['path'] ?? '', '/')) {
+                $rutaVuelta = $ruta;
+                $vieneDeBusqueda = true;
+                break;
+            }
         }
 
+        $filtros = [];
+        if ($vieneDeBusqueda) {
+            parse_str($previa['query'] ?? '', $consulta);
+
+            foreach ($consulta as $clave => $valor) {
+                if (in_array($clave, ['search', 'page'], true) && is_string($valor) && trim($valor) !== '') {
+                    $filtros[$clave] = $valor;
+                } elseif ($clave === 'rubro') {
+                    $rubros = array_values(array_filter(
+                        Arr::wrap($valor),
+                        fn ($rubro) => is_string($rubro) && trim($rubro) !== ''
+                    ));
+
+                    if ($rubros !== []) {
+                        $filtros['rubro'] = count($rubros) === 1 ? $rubros[0] : $rubros;
+                    }
+                }
+            }
+        }
+
+        $rubro = $filtros['rubro'] ?? null;
+
         return [
-            'volverUrl' => route('comercios.index', $filtros),
-            'terminoBuscado' => $filtros['search'] ?? ($filtros['rubro'] ?? null),
+            'volverUrl' => route($rutaVuelta, $filtros),
+            'terminoBuscado' => $filtros['search'] ?? (is_array($rubro) ? implode(', ', $rubro) : $rubro),
         ];
     }
 

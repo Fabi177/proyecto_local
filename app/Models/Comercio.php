@@ -41,6 +41,53 @@ class Comercio extends Model
     ];
 
     /**
+     * Rubros disponibles, agrupados (valor guardado => etiqueta que se muestra).
+     *
+     * Son los mismos que ofrece el campo "Rubro / Categoría *" del formulario del
+     * comerciante. Los usa el filtro por rubro del dashboard público.
+     */
+    public const RUBROS = [
+        'Gastronomía' => [
+            'Restaurante' => 'Restaurante',
+            'Cafe' => 'Cafetería / Bar',
+            'Panaderia' => 'Panadería / Pastelería',
+            'Supermercado' => 'Supermercado / Almacén',
+            'Verduleria' => 'Verdulería / Frutería',
+            'Carniceria' => 'Carnicería / Pescadería',
+            'Delivery' => 'Solo Delivery',
+        ],
+        'Tiendas y Compras' => [
+            'Indumentaria' => 'Indumentaria y Accesorios',
+            'Calzado' => 'Zapatería',
+            'Tecnologia' => 'Tecnología / Computación',
+            'Hogar' => 'Hogar / Decoración / Muebles',
+            'Libreria' => 'Librería / Artística',
+            'Jugueteria' => 'Juguetería',
+            'Ferreteria' => 'Ferretería',
+            'Kiosco' => 'Kiosco / Drugstore',
+        ],
+        'Salud y Bienestar' => [
+            'Farmacia' => 'Farmacia',
+            'Optica' => 'Óptica',
+            'Gimnasio' => 'Gimnasio / Fitness',
+            'Peluqueria' => 'Peluquería / Barbería',
+            'Estetica' => 'Belleza / Estética',
+        ],
+        'Servicios y Profesionales' => [
+            'Mecanico' => 'Taller Mecánico / Repuestos',
+            'Mascotas' => 'Veterinaria / Pet Shop',
+            'Lavanderia' => 'Lavandería / Tintorería',
+            'ReparacionesHogar' => 'Reparaciones del Hogar (Plomería, etc.)',
+            'ServiciosProfesionales' => 'Servicios Profesionales (Abogado, Contador)',
+        ],
+        'Ocio y Otros' => [
+            'Hoteleria' => 'Hotelería / Turismo',
+            'Entretenimiento' => 'Entretenimiento',
+            'Otro' => 'Otro',
+        ],
+    ];
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>

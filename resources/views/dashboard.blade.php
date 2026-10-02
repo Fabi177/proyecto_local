@@ -1,4 +1,4 @@
-@if (Auth::user()->role === 'comerciante')
+@if (Auth::check() && Auth::user()->role === 'comerciante')
 
 <!-- ======================================================= -->
 <!-- SI ES COMERCIANTE, CARGA EL LAYOUT DEL PANEL DE CONTROL -->
@@ -45,13 +45,17 @@
 @else
 
 <!-- ======================================================= -->
-<!-- SI ES USUARIO, CARGA EL LAYOUT PÚBLICO (CON GRADIENTE) -->
+<!-- SI ES VISITANTE O CLIENTE, CARGA EL LAYOUT PÚBLICO (CON GRADIENTE) -->
 <!-- ======================================================= -->
 <x-app-layout>
 
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('¡Hola, ') . Auth::user()->name . '!' }}
+            @auth
+                {{ __('¡Hola, ') . Auth::user()->name . '!' }}
+            @else
+                {{ __('Comercios de L. N. Alem') }}
+            @endauth
         </h2>
     </x-slot>
 

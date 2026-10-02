@@ -1,4 +1,10 @@
-<!-- Este es el panel que verá un USUARIO (Cliente) -->
+<!-- Panel que ven el VISITANTE y el CLIENTE: buscador, filtro por rubro y todos los comercios -->
+@php
+    // Rubros elegidos (vienen de la URL ya limpios) y mapa valor => etiqueta para mostrarlos
+    $rubrosElegidos = $filters['rubro'] ?? [];
+    $etiquetas = collect($rubros)->flatMap(fn ($grupo) => $grupo)->all();
+@endphp
+
 <div class="bg-white overflow-visible shadow-xl sm:rounded-lg">
     <div class="p-6 md:p-8 text-gray-900">
 
@@ -7,16 +13,27 @@
             Busca comercios por nombre, rubro o servicio.
         </p>
 
-        <!--
-            ============================================
-            ==== CAMBIO 1: Se añadió el <form> ====
-            ============================================
-            Envolvemos la barra de búsqueda en un formulario
-            para que apunte a la ruta 'comercios.index'
-        -->
-        <form action="{{ route('comercios.index') }}" method="GET">
-            <div class="mt-6">
-                <div class="relative flex items-center" x-data="autocompletadoComercios({ url: @js(route('comercios.sugerencias')) })" @click.outside="cerrar()">
+        {{-- Un solo formulario: el texto buscado y los rubros elegidos viajan juntos por GET --}}
+        <form action="{{ route('dashboard') }}" method="GET"
+              x-data="{
+                  abierto: false,
+                  inicial: @js($rubrosElegidos),
+                  sel: @js($rubrosElegidos),
+                  etiquetas: @js($etiquetas),
+                  cambio() { return JSON.stringify([...this.sel].sort()) !== JSON.stringify([...this.inicial].sort()); },
+                  cerrar() { this.abierto = false; if (this.cambio()) { this.$nextTick(() => this.$root.requestSubmit()); } },
+                  quitar(r) { this.sel = this.sel.filter(x => x !== r); this.$nextTick(() => this.$root.requestSubmit()); },
+                  limpiar() { this.sel = []; this.$nextTick(() => this.$root.requestSubmit()); }
+              }"
+              @keydown.escape.window="abierto && cerrar()">
+
+            {{-- Los rubros elegidos viajan como rubro[]=... --}}
+            <template x-for="r in sel" :key="r">
+                <input type="hidden" name="rubro[]" :value="r">
+            </template>
+
+            <div class="mt-6 flex flex-col gap-3 md:flex-row">
+                <div class="relative flex flex-1 items-center" x-data="autocompletadoComercios({ url: @js(route('comercios.sugerencias')) })" @click.outside="cerrar()">
                     <input type="text"
                            name="search"
                            id="search"
@@ -26,7 +43,8 @@
                            aria-haspopup="listbox"
                            autocomplete="off"
                            class="block w-full rounded-lg border-gray-300 py-4 pl-12 pr-4 text-lg shadow-sm focus:border-[var(--primary-green)] focus:ring-[var(--primary-green)]"
-                           placeholder="Buscar Restaurantes, Ferreterías, Servicios...">
+                           placeholder="Buscar Restaurantes, Ferreterías, Servicios..."
+                           value="{{ $filters['search'] ?? '' }}">
 
                     @include('comercios.partials.sugerencias')
 
@@ -34,46 +52,124 @@
                         <svg class="w-6 h-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
                     </div>
                 </div>
-                <!--
-                    No es necesario un botón de "submit" visible,
-                    presionar Enter enviará el formulario.
-                -->
+
+                <button type="button" @click="abierto = true"
+                        class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-4 font-semibold text-gray-700 shadow-sm transition hover:border-[var(--primary-green)]">
+                    <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" /></svg>
+                    Filtrar por rubro
+                    <span x-show="sel.length" x-text="sel.length" style="display: none;" class="rounded-full bg-[var(--primary-green)] px-2 text-sm text-white"></span>
+                </button>
+
+                <button type="submit"
+                        class="inline-flex items-center justify-center rounded-lg bg-[var(--primary-green)] px-6 py-4 font-bold text-white shadow transition hover:bg-green-600">
+                    Buscar
+                </button>
+            </div>
+
+            {{-- Rubros elegidos, cada uno con su × para quitarlo --}}
+            <div class="mt-4 flex flex-wrap items-center gap-2" x-show="sel.length" style="display: none;">
+                <template x-for="r in sel" :key="r">
+                    <span class="inline-flex items-center gap-1 rounded-full bg-green-100 py-1 pl-3 pr-1 text-sm font-semibold text-green-800">
+                        <span x-text="etiquetas[r] ?? r"></span>
+                        <button type="button" @click="quitar(r)" class="rounded-full px-2 hover:bg-green-200" aria-label="Quitar rubro">×</button>
+                    </span>
+                </template>
+                <button type="button" @click="limpiar()" class="ml-1 text-sm text-green-700 underline">Limpiar rubros</button>
+            </div>
+
+            {{-- Ventana emergente con los rubros (se pueden marcar varios) --}}
+            <div x-show="abierto" style="display: none;"
+                 class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 p-4"
+                 @click.self="cerrar()">
+                <div class="flex max-h-[85vh] w-full max-w-xl flex-col rounded-2xl bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="titulo-rubros">
+
+                    <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+                        <h4 id="titulo-rubros" class="text-lg font-bold text-gray-800">Elige uno o varios rubros</h4>
+                        <button type="button" @click="cerrar()" class="text-2xl leading-none text-gray-400 hover:text-gray-600" aria-label="Cerrar">×</button>
+                    </div>
+
+                    <div class="overflow-y-auto px-6 py-4">
+                        @foreach ($rubros as $grupo => $items)
+                            <p class="mb-2 mt-4 text-xs font-bold uppercase tracking-wide text-gray-500 first:mt-0">{{ $grupo }}</p>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach ($items as $valor => $etiqueta)
+                                    <label class="cursor-pointer">
+                                        <input type="checkbox" value="{{ $valor }}" x-model="sel" class="peer sr-only">
+                                        <span class="inline-block rounded-full border border-gray-200 bg-gray-50 px-4 py-2 text-sm transition hover:border-[var(--primary-green)] peer-checked:border-[var(--primary-green)] peer-checked:bg-[var(--primary-green)] peer-checked:font-bold peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--primary-green)]">{{ $etiqueta }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <div class="flex items-center justify-between border-t border-gray-200 px-6 py-4">
+                        <button type="button" @click="sel = []" class="text-sm text-gray-500 hover:text-gray-700">Borrar selección</button>
+                        <button type="submit" class="rounded-lg bg-[var(--primary-green)] px-6 py-2 font-bold text-white shadow transition hover:bg-green-600">Aplicar</button>
+                    </div>
+                </div>
             </div>
         </form>
 
-        <!--
-            ============================================
-            ==== CAMBIO 2: Se actualizaron los enlaces ====
-            ============================================
-        -->
-        <div class="mt-8">
-            <h4 class="text-lg font-semibold text-gray-700">Categorías Populares</h4>
-            <div class="mt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        {{-- TODOS LOS COMERCIOS --}}
+        <div class="mt-10">
+            <h4 class="text-lg font-semibold text-gray-700">
+                @if (! empty($filters))
+                    Resultados
+                @else
+                    Todos los comercios
+                @endif
+                <span class="font-normal text-gray-500">({{ $comercios->total() }})</span>
+            </h4>
 
-                <!-- Enlace a ?rubro=Restaurante -->
-                <a href="{{ route('comercios.index', ['rubro' => 'Restaurante']) }}" class="block p-4 bg-gray-50 rounded-lg text-center transition hover:bg-gray-100 hover:shadow-md">
-                    <span class="text-4xl">🍽️</span>
-                    <span class="mt-2 block font-semibold text-gray-700">Restaurantes</span>
-                </a>
+            <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                @forelse ($comercios as $comercio)
+                    @php
+                        $promedio = (float) ($comercio->resenas_avg_calificacion ?? 0);
+                        $estrellas = (int) round($promedio);
+                    @endphp
+                    <div class="flex flex-col rounded-xl border border-gray-200 bg-white p-5 transition hover:shadow-lg">
+                        <div class="flex items-start gap-4">
+                            @if ($comercio->logo_url)
+                                <img src="{{ $comercio->logo_url }}" alt="Logo de {{ $comercio->nombre }}" class="h-16 w-16 flex-shrink-0 rounded-lg border border-gray-200 bg-white object-contain">
+                            @else
+                                <div class="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--primary-green)] text-2xl font-bold text-white" aria-hidden="true">
+                                    {{ mb_strtoupper(mb_substr($comercio->nombre, 0, 1)) }}
+                                </div>
+                            @endif
+                            <div class="min-w-0">
+                                <h5 class="break-words text-lg font-bold text-gray-900">{{ $comercio->nombre }}</h5>
+                                <span class="mt-1 inline-block rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">
+                                    {{ $etiquetas[$comercio->rubro] ?? $comercio->rubro }}
+                                </span>
+                            </div>
+                        </div>
 
-                <!-- Enlace a ?rubro=Indumentaria -->
-                <a href="{{ route('comercios.index', ['rubro' => 'Indumentaria']) }}" class="block p-4 bg-gray-50 rounded-lg text-center transition hover:bg-gray-100 hover:shadow-md">
-                    <span class="text-4xl">👕</span>
-                    <span class="mt-2 block font-semibold text-gray-700">Indumentaria</span>
-                </a>
+                        <p class="mt-3 text-sm text-gray-500">
+                            @if ($comercio->resenas_count > 0)
+                                <span class="text-amber-500">{{ str_repeat('★', $estrellas) }}{{ str_repeat('☆', 5 - $estrellas) }}</span>
+                                {{ number_format($promedio, 1, ',', '.') }} ({{ $comercio->resenas_count }})
+                            @else
+                                <span class="text-gray-400">Sin calificaciones todavía</span>
+                            @endif
+                        </p>
+                        <p class="mt-1 break-words text-sm text-gray-500">{{ $comercio->direccion }}</p>
 
-                <!-- Enlace a ?rubro=Farmacia -->
-                <a href="{{ route('comercios.index', ['rubro' => 'Farmacia']) }}" class="block p-4 bg-gray-50 rounded-lg text-center transition hover:bg-gray-100 hover:shadow-md">
-                    <span class="text-4xl">⚕️</span>
-                    <span class="mt-2 block font-semibold text-gray-700">Farmacias</span>
-                </a>
+                        <div class="mt-4 flex flex-1 items-end justify-end">
+                            <a href="{{ route('comercio.show', $comercio) }}" class="inline-flex items-center rounded-lg bg-[var(--primary-green)] px-5 py-2 font-bold text-white shadow transition hover:bg-green-600">
+                                Ver Perfil
+                            </a>
+                        </div>
+                    </div>
+                @empty
+                    <div class="col-span-full rounded-xl bg-gray-50 p-8 text-center">
+                        <h5 class="text-xl font-bold text-gray-800">Sin resultados</h5>
+                        <p class="mt-2 text-gray-600">No encontramos comercios que coincidan con tu búsqueda.</p>
+                    </div>
+                @endforelse
+            </div>
 
-                <!-- (Puedes añadir más categorías aquí) -->
-                <a href="{{ route('comercios.index', ['rubro' => 'Mecanico']) }}" class="block p-4 bg-gray-50 rounded-lg text-center transition hover:bg-gray-100 hover:shadow-md">
-                    <span class="text-4xl">🛠️</span>
-                    <span class="mt-2 block font-semibold text-gray-700">Servicios</span>
-                </a>
-
+            <div class="mt-8">
+                {{ $comercios->links() }}
             </div>
         </div>
     </div>

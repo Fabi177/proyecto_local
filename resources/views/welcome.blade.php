@@ -124,9 +124,14 @@
                     <h1>Conecta, Descubre, Crece.</h1>
                     <p class="sub">Busca comercios, servicios y rubros de L. N. Alem.</p>
 
+                    @php
+                        // Visitantes y clientes buscan en el dashboard; comerciantes y admin siguen en /comercios.
+                        $paginaBusqueda = (auth()->guest() || auth()->user()->role === 'usuario') ? 'dashboard' : 'comercios.index';
+                    @endphp
+
                     <!-- Buscador público: no pide registrarse -->
                     <div class="hero-buscador" id="hero-buscador">
-                        <form action="{{ route('comercios.index') }}" method="GET" role="search">
+                        <form action="{{ route($paginaBusqueda) }}" method="GET" role="search">
                             <div class="hero-campo">
                                 <input id="hero-q" type="search" name="search" autocomplete="off" role="combobox"
                                        aria-autocomplete="list" aria-expanded="false" aria-controls="hero-sug"
@@ -140,12 +145,12 @@
                     </div>
 
                     <ul class="hero-rubros" aria-label="Rubros populares">
-                        <li><a href="{{ route('comercios.index', ['rubro' => 'Restaurante']) }}">🍽️ Restaurantes</a></li>
-                        <li><a href="{{ route('comercios.index', ['rubro' => 'Indumentaria']) }}">👕 Indumentaria</a></li>
-                        <li><a href="{{ route('comercios.index', ['rubro' => 'Farmacia']) }}">⚕️ Farmacias</a></li>
-                        <li><a href="{{ route('comercios.index', ['rubro' => 'Ferreteria']) }}">🛠️ Ferreterías</a></li>
+                        <li><a href="{{ route($paginaBusqueda, ['rubro' => 'Restaurante']) }}">🍽️ Restaurantes</a></li>
+                        <li><a href="{{ route($paginaBusqueda, ['rubro' => 'Indumentaria']) }}">👕 Indumentaria</a></li>
+                        <li><a href="{{ route($paginaBusqueda, ['rubro' => 'Farmacia']) }}">⚕️ Farmacias</a></li>
+                        <li><a href="{{ route($paginaBusqueda, ['rubro' => 'Ferreteria']) }}">🛠️ Ferreterías</a></li>
                     </ul>
-                    <a class="hero-todos" href="{{ route('comercios.index') }}">Ver todos los comercios</a>
+                    <a class="hero-todos" href="{{ route($paginaBusqueda) }}">Ver todos los comercios</a>
 
                     @guest
                         <p class="hero-comerciante">¿Tienes un comercio? <a href="{{ route('register') }}">Súmalo a LocalCommers</a></p>

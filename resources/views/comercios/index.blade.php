@@ -35,9 +35,9 @@
                     </div>
 
                     <!-- Si se está filtrando por rubro, lo mantenemos oculto -->
-                    @if (isset($filters['rubro']))
-                        <input type="hidden" name="rubro" value="{{ $filters['rubro'] }}">
-                    @endif
+                    @foreach ($filters['rubro'] ?? [] as $rubroFiltrado)
+                        <input type="hidden" name="rubro[]" value="{{ $rubroFiltrado }}">
+                    @endforeach
 
                     <div class="mt-4 flex justify-end">
                         <button type="submit" class="inline-flex items-center px-6 py-3 bg-gray-800 text-white font-bold rounded-lg shadow transition hover:bg-gray-700">
@@ -53,7 +53,7 @@
             @if (isset($filters['search']))
                 <h3 class="text-xl font-semibold text-gray-800">Resultados para: "<span class="text-[var(--primary-green)]">{{ $filters['search'] }}</span>"</h3>
             @elseif (isset($filters['rubro']))
-                <h3 class="text-xl font-semibold text-gray-800">Comercios en la categoría: <span class="text-[var(--primary-green)]">{{ $filters['rubro'] }}</span></h3>
+                <h3 class="text-xl font-semibold text-gray-800">Comercios en la categoría: <span class="text-[var(--primary-green)]">{{ implode(', ', $filters['rubro']) }}</span></h3>
             @else
                 <h3 class="text-xl font-semibold text-gray-800">Todos los Comercios</h3>
             @endif
@@ -112,7 +112,7 @@
 
             <!-- Links de Paginación (con los filtros) -->
             <div class="mt-8">
-                {{ $comercios->appends($filters)->links() }}
+                {{ $comercios->links() }}
             </div>
         </div>
 
