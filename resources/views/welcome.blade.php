@@ -122,16 +122,14 @@
 
                 <div class="hero-centro">
                     <h1>Conecta, Descubre, Crece.</h1>
+                    {{-- El buscador es para visitantes y clientes. El comerciante y el administrador
+                         tienen su propio panel ("Mi Panel"), así que no se les muestra. --}}
+                    @if (auth()->guest() || auth()->user()->role === 'usuario')
                     <p class="sub">Busca comercios, servicios y rubros de L. N. Alem.</p>
-
-                    @php
-                        // Visitantes y clientes buscan en el dashboard; comerciantes y admin siguen en /comercios.
-                        $paginaBusqueda = (auth()->guest() || auth()->user()->role === 'usuario') ? 'dashboard' : 'comercios.index';
-                    @endphp
 
                     <!-- Buscador público: no pide registrarse -->
                     <div class="hero-buscador" id="hero-buscador">
-                        <form action="{{ route($paginaBusqueda) }}" method="GET" role="search">
+                        <form action="{{ route('dashboard') }}" method="GET" role="search">
                             <div class="hero-campo">
                                 <input id="hero-q" type="search" name="search" autocomplete="off" role="combobox"
                                        aria-autocomplete="list" aria-expanded="false" aria-controls="hero-sug"
@@ -145,12 +143,13 @@
                     </div>
 
                     <ul class="hero-rubros" aria-label="Rubros populares">
-                        <li><a href="{{ route($paginaBusqueda, ['rubro' => 'Restaurante']) }}">🍽️ Restaurantes</a></li>
-                        <li><a href="{{ route($paginaBusqueda, ['rubro' => 'Indumentaria']) }}">👕 Indumentaria</a></li>
-                        <li><a href="{{ route($paginaBusqueda, ['rubro' => 'Farmacia']) }}">⚕️ Farmacias</a></li>
-                        <li><a href="{{ route($paginaBusqueda, ['rubro' => 'Ferreteria']) }}">🛠️ Ferreterías</a></li>
+                        <li><a href="{{ route('dashboard', ['rubro' => 'Restaurante']) }}">🍽️ Restaurantes</a></li>
+                        <li><a href="{{ route('dashboard', ['rubro' => 'Indumentaria']) }}">👕 Indumentaria</a></li>
+                        <li><a href="{{ route('dashboard', ['rubro' => 'Farmacia']) }}">⚕️ Farmacias</a></li>
+                        <li><a href="{{ route('dashboard', ['rubro' => 'Ferreteria']) }}">🛠️ Ferreterías</a></li>
                     </ul>
-                    <a class="hero-todos" href="{{ route($paginaBusqueda) }}">Ver todos los comercios</a>
+                    <a class="hero-todos" href="{{ route('dashboard') }}">Ver todos los comercios</a>
+                    @endif
 
                     @guest
                         <p class="hero-comerciante">¿Tienes un comercio? <a href="{{ route('register') }}">Súmalo a LocalCommers</a></p>
@@ -241,6 +240,7 @@
                 var lista = document.getElementById('hero-sug');
                 var caja = document.getElementById('hero-buscador');
                 var items = [], activo = -1, timer = null, ctl = null;
+                if (!q || !lista || !caja) { return; } // sin buscador (comerciante o admin) no hay nada que hacer
 
                 function cerrar() { lista.hidden = true; q.setAttribute('aria-expanded', 'false'); activo = -1; }
                 function marcar() {

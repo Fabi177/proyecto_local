@@ -94,7 +94,7 @@ test('un texto con HTML no rompe nada', function () {
 });
 
 test('la página de resultados tiene el autocompletado', function () {
-    $this->get(route('comercios.index'))
+    $this->get(route('dashboard'))
         ->assertOk()
         ->assertSee('autocompletadoComercios(', false)
         ->assertSee('x-bind="entrada"', false);

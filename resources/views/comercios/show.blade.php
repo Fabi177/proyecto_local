@@ -39,7 +39,7 @@
 
     @if ($mostrarBuscador)
         <!-- Buscador: arranca vacío, con el mismo texto de ayuda que el del panel del cliente -->
-        <form action="{{ route('comercios.index') }}" method="GET" role="search" class="perfil-buscador" x-data="autocompletadoComercios({ url: @js(route('comercios.sugerencias')) })" @click.outside="cerrar()">
+        <form action="{{ route('dashboard') }}" method="GET" role="search" class="perfil-buscador" x-data="autocompletadoComercios({ url: @js(route('comercios.sugerencias')) })" @click.outside="cerrar()">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
             <input type="search" name="search" aria-label="Buscar comercios" placeholder="Buscar Restaurantes, Ferreterías, Servicios..." autocomplete="off" x-bind="entrada" role="combobox" aria-autocomplete="list" aria-haspopup="listbox">
             @include('comercios.partials.sugerencias')

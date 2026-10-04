@@ -41,7 +41,7 @@ test('el cliente ve el buscador y el botón volver en el perfil', function () {
 test('el buscador del perfil arranca vacío y con el texto de ayuda del panel', function () {
     $cliente = User::factory()->create(['role' => 'usuario']);
 
-    verPerfilComo($cliente, comercioDePrueba(), route('comercios.index', ['search' => 'pan']))
+    verPerfilComo($cliente, comercioDePrueba(), route('dashboard', ['search' => 'pan']))
         ->assertSee('placeholder="Buscar Restaurantes, Ferreterías, Servicios..."', false)
         ->assertDontSee('name="search" value=', false);
 });
@@ -50,19 +50,19 @@ test('el buscador del perfil envía la búsqueda al listado de comercios', funct
     $cliente = User::factory()->create(['role' => 'usuario']);
 
     verPerfilComo($cliente, comercioDePrueba())
-        ->assertSee('action="' . e(route('comercios.index')) . '"', false);
+        ->assertSee('action="' . e(route('dashboard')) . '"', false);
 });
 
 test('sin página anterior, volver lleva al buscador sin filtros', function () {
     $cliente = User::factory()->create(['role' => 'usuario']);
 
     verPerfilComo($cliente, comercioDePrueba())
-        ->assertSee('href="' . e(route('comercios.index')) . '" class="perfil-volver"', false);
+        ->assertSee('href="' . e(route('dashboard')) . '" class="perfil-volver"', false);
 });
 
 test('volver conserva la búsqueda y la página, pero el buscador queda vacío', function () {
     $cliente = User::factory()->create(['role' => 'usuario']);
-    $destino = route('comercios.index', ['search' => 'pan', 'page' => '2']);
+    $destino = route('dashboard', ['search' => 'pan', 'page' => '2']);
 
     verPerfilComo($cliente, comercioDePrueba(), $destino)
         ->assertSee('href="' . e($destino) . '" class="perfil-volver"', false)
@@ -71,7 +71,7 @@ test('volver conserva la búsqueda y la página, pero el buscador queda vacío',
 
 test('volver conserva el rubro elegido, pero el buscador queda vacío', function () {
     $cliente = User::factory()->create(['role' => 'usuario']);
-    $destino = route('comercios.index', ['rubro' => 'Farmacia']);
+    $destino = route('dashboard', ['rubro' => 'Farmacia']);
 
     verPerfilComo($cliente, comercioDePrueba(), $destino)
         ->assertSee('href="' . e($destino) . '" class="perfil-volver"', false)
@@ -83,7 +83,7 @@ test('si viene de otro perfil, volver lleva al buscador sin filtros', function (
     $otro = comercioDePrueba();
 
     verPerfilComo($cliente, comercioDePrueba(), route('comercio.show', $otro) . '?search=pan')
-        ->assertSee('href="' . e(route('comercios.index')) . '" class="perfil-volver"', false)
+        ->assertSee('href="' . e(route('dashboard')) . '" class="perfil-volver"', false)
         ->assertDontSee('value="pan"', false);
 });
 
@@ -91,22 +91,22 @@ test('una página anterior de otro sitio no se usa para volver', function () {
     $cliente = User::factory()->create(['role' => 'usuario']);
 
     verPerfilComo($cliente, comercioDePrueba(), 'https://sitio-malicioso.example/comercios?search=pan')
-        ->assertSee('href="' . e(route('comercios.index')) . '" class="perfil-volver"', false)
+        ->assertSee('href="' . e(route('dashboard')) . '" class="perfil-volver"', false)
         ->assertDontSee('sitio-malicioso');
 });
 
 test('solo se toman los filtros conocidos de la búsqueda anterior', function () {
     $cliente = User::factory()->create(['role' => 'usuario']);
-    $previa = route('comercios.index') . '?search=pan&redirect=https://otro.example&x[]=1';
+    $previa = route('dashboard') . '?search=pan&redirect=https://otro.example&x[]=1';
 
     verPerfilComo($cliente, comercioDePrueba(), $previa)
-        ->assertSee('href="' . e(route('comercios.index', ['search' => 'pan'])) . '" class="perfil-volver"', false)
+        ->assertSee('href="' . e(route('dashboard', ['search' => 'pan'])) . '" class="perfil-volver"', false)
         ->assertDontSee('otro.example');
 });
 
 test('el texto buscado se escapa para evitar inyección de HTML', function () {
     $cliente = User::factory()->create(['role' => 'usuario']);
-    $previa = route('comercios.index', ['search' => '"><script>alert(1)</script>']);
+    $previa = route('dashboard', ['search' => '"><script>alert(1)</script>']);
 
     verPerfilComo($cliente, comercioDePrueba(), $previa)
         ->assertOk()
@@ -122,12 +122,12 @@ test('el comerciante no ve el buscador ni el botón volver', function () {
         ->assertDontSee('Volver a los resultados');
 });
 
-test('el listado de comercios sigue funcionando con la búsqueda del perfil', function () {
+test('el dashboard sigue funcionando con la búsqueda del perfil', function () {
     $cliente = User::factory()->create(['role' => 'usuario']);
     $comercio = comercioDePrueba();
 
     $this->actingAs($cliente)
-        ->get(route('comercios.index', ['search' => 'don julio']))
+        ->get(route('dashboard', ['search' => 'don julio']))
         ->assertOk()
         ->assertSee('Panadería Don Julio');
 });

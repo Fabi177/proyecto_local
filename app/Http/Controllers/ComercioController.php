@@ -15,21 +15,6 @@ use Illuminate\View\View;
 class ComercioController extends Controller
 {
     /**
-     * Muestra la lista pública de comercios (con filtros).
-     *
-     * El filtro "rubro" acepta uno (?rubro=Cafe) o varios (?rubro[]=Cafe&rubro[]=Farmacia).
-     */
-    public function index(Request $request): View
-    {
-        $filtros = $this->filtrosDeBusqueda($request);
-
-        return view('comercios.index', [
-            'comercios' => $this->consultaComercios($filtros)->paginate(12)->withQueryString(),
-            'filters' => $filtros,
-        ]);
-    }
-
-    /**
      * /dashboard: lo puede ver cualquiera.
      *
      * - Administrador: se lo lleva a su panel.
@@ -275,33 +260,24 @@ class ComercioController extends Controller
     /**
      * Arma el enlace para "Volver a los resultados".
      *
-     * Si el cliente llegó al perfil desde el buscador (/comercios) o desde el dashboard
-     * (/dashboard), se vuelve a esa misma búsqueda (mismo texto, rubros y página). Si no,
-     * se vuelve al buscador sin filtros. Solo se toman los filtros conocidos de la URL
-     * anterior, nunca la URL completa, así que no se puede usar para redirigir a otro sitio.
+     * Si el cliente llegó al perfil desde el dashboard, se vuelve a esa misma búsqueda
+     * (mismo texto, rubros y página). Si no, se vuelve al dashboard sin filtros.
+     * Solo se toman los filtros conocidos de la URL anterior, nunca la URL completa,
+     * así que no se puede usar para redirigir a otro sitio.
      *
      * @return array{volverUrl: string, terminoBuscado: string|null}
      */
     private function datosVolverABusqueda(): array
     {
         $previa = parse_url(url()->previous()) ?: [];
+        $dashboard = parse_url(route('dashboard'));
 
-        // ¿La página anterior fue una de las que buscan? Si sí, se vuelve a esa misma.
-        $rutaVuelta = 'comercios.index';
-        $vieneDeBusqueda = false;
-        foreach (['comercios.index', 'dashboard'] as $ruta) {
-            $conocida = parse_url(route($ruta));
-
-            if (($previa['host'] ?? null) === ($conocida['host'] ?? null)
-                && rtrim($previa['path'] ?? '', '/') === rtrim($conocida['path'] ?? '', '/')) {
-                $rutaVuelta = $ruta;
-                $vieneDeBusqueda = true;
-                break;
-            }
-        }
+        // ¿La página anterior fue el dashboard (en este mismo sitio)?
+        $vieneDelDashboard = ($previa['host'] ?? null) === ($dashboard['host'] ?? null)
+            && rtrim($previa['path'] ?? '', '/') === rtrim($dashboard['path'] ?? '', '/');
 
         $filtros = [];
-        if ($vieneDeBusqueda) {
+        if ($vieneDelDashboard) {
             parse_str($previa['query'] ?? '', $consulta);
 
             foreach ($consulta as $clave => $valor) {
@@ -323,7 +299,7 @@ class ComercioController extends Controller
         $rubro = $filtros['rubro'] ?? null;
 
         return [
-            'volverUrl' => route($rutaVuelta, $filtros),
+            'volverUrl' => route('dashboard', $filtros),
             'terminoBuscado' => $filtros['search'] ?? (is_array($rubro) ? implode(', ', $rubro) : $rubro),
         ];
     }

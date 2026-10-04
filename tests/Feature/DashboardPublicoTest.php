@@ -134,25 +134,50 @@ test('la portada manda al visitante al dashboard (buscador, rubros y ver todos)'
         ->assertSee(e(route('dashboard', ['rubro' => 'Restaurante'])), false);
 });
 
-test('el comerciante logueado sigue usando /comercios desde la portada', function () {
+test('el comerciante y el admin no ven el buscador en la portada, solo "Mi Panel"', function () {
+    foreach (['comerciante', 'admin'] as $rol) {
+        $this->actingAs(User::factory()->create(['role' => $rol]))
+            ->get('/')
+            ->assertOk()
+            ->assertSee('Mi Panel')
+            ->assertDontSee('id="hero-q"', false)
+            ->assertDontSee('Ver todos los comercios');
+    }
+});
+
+test('el cliente logueado ve el buscador en la portada y va al dashboard', function () {
+    $this->actingAs(User::factory()->create(['role' => 'usuario']))
+        ->get('/')
+        ->assertOk()
+        ->assertSee('id="hero-q"', false)
+        ->assertSee('action="' . e(route('dashboard')) . '"', false);
+});
+
+test('la dirección vieja /comercios redirige al dashboard conservando lo buscado', function () {
+    $this->get('/comercios')->assertRedirect(route('dashboard'));
+
+    $this->get('/comercios?search=pan&rubro[]=Cafe&rubro[]=Farmacia')
+        ->assertRedirect(route('dashboard', ['search' => 'pan', 'rubro' => ['Cafe', 'Farmacia']]));
+});
+
+test('la dirección vieja /comercios no muestra el listado al comerciante: lo lleva a su panel', function () {
     $comerciante = User::factory()->create(['role' => 'comerciante']);
 
     $this->actingAs($comerciante)
-        ->get('/')
+        ->followingRedirects()
+        ->get('/comercios')
         ->assertOk()
-        ->assertSee('action="' . e(route('comercios.index')) . '"', false);
+        ->assertSee('Panel de Comerciante')
+        ->assertDontSee('Filtrar por rubro');
 });
 
-test('el listado /comercios acepta varios rubros', function () {
-    comercioDelDashboard('Café del Centro', 'Cafe');
-    comercioDelDashboard('Farmacia Central', 'Farmacia');
-    comercioDelDashboard('Ferretería Don Luis', 'Ferreteria');
+test('el buscador del perfil público envía al dashboard', function () {
+    $comercio = comercioDelDashboard('Café del Centro', 'Cafe');
 
-    $this->get(route('comercios.index', ['rubro' => ['Cafe', 'Farmacia']]))
+    $this->actingAs(User::factory()->create(['role' => 'usuario']))
+        ->get(route('comercio.show', $comercio))
         ->assertOk()
-        ->assertSee('Café del Centro')
-        ->assertSee('Farmacia Central')
-        ->assertDontSee('Ferretería Don Luis');
+        ->assertSee('action="' . e(route('dashboard')) . '" method="GET" role="search"', false);
 });
 
 test('desde el perfil, volver lleva de nuevo al dashboard con la misma búsqueda', function () {

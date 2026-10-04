@@ -7,6 +7,7 @@ use App\Http\Controllers\ResenaController;
 use App\Http\Controllers\TareasController;
 use App\Http\Controllers\UsuariosController;
 use App\Http\Controllers\ComercioController; // <-- Importación
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // -------------------------------------------------------------------
@@ -17,8 +18,9 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
-// (R)EAD: Muestra la página de BÚSQUEDA y RESULTADOS de todos los comercios
-Route::get('/comercios', [ComercioController::class, 'index'])->name('comercios.index');
+// La búsqueda y el listado de comercios viven en /dashboard. Esta dirección solo queda para que
+// los enlaces viejos sigan funcionando: redirige conservando lo buscado (?search=...&rubro[]=...).
+Route::get('/comercios', fn (Request $request) => redirect()->route('dashboard', $request->query()));
 
 // Sugerencias en vivo para los buscadores (devuelve JSON).
 // IMPORTANTE: debe ir ANTES de /comercios/{comercio}, si no "sugerencias" se toma como el id de un comercio.
