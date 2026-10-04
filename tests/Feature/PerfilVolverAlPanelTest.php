@@ -81,3 +81,37 @@ test('la edición de un comercio ajeno sigue sin estar disponible', function () 
         ->get(route('comercio.edit', $comercio))
         ->assertNotFound();
 });
+
+test('el admin que edita un comercio ajeno vuelve a /admin/comercios, no a /admin', function () {
+    $comercio = comercioParaVolver();
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $this->actingAs($admin)
+        ->get(route('comercio.edit', $comercio))
+        ->assertOk()
+        ->assertSee('Volver al panel de administración')
+        ->assertSee('href="' . e(route('admin.comercios')) . '"', false)
+        ->assertDontSee('Volver a mi panel');
+});
+
+test('al guardar, el admin vuelve a /admin/comercios y el comerciante a su dashboard', function () {
+    $comercio = comercioParaVolver();
+    $datos = ['nombre' => 'Nuevo nombre', 'direccion' => 'Calle 1', 'rubro' => 'Cafe'];
+
+    $this->actingAs(User::factory()->create(['role' => 'admin']))
+        ->patch(route('comercio.update', $comercio), $datos)
+        ->assertRedirect(route('admin.comercios'));
+
+    $this->actingAs($comercio->user)
+        ->patch(route('comercio.update', $comercio), $datos)
+        ->assertRedirect(route('dashboard'));
+});
+
+test('el aviso de cambios no compara fechas de archivos (daba falsos avisos al entrar y salir)', function () {
+    $comercio = comercioParaVolver();
+
+    $this->actingAs($comercio->user)
+        ->get(route('comercio.edit', $comercio))
+        ->assertOk()
+        ->assertDontSee('lastModified', false);
+});

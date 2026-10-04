@@ -2,9 +2,9 @@
 <x-slot name="header">
 <div class="flex flex-wrap items-center gap-3">
     <!-- Si hay cambios sin guardar, en vez de salir directo se abre el aviso (ver abajo) -->
-    <a href="{{ route('dashboard') }}" x-data @click.prevent="$dispatch('intentar-volver')"
+    <a href="{{ $panelUrl }}" x-data @click.prevent="$dispatch('intentar-volver')"
        class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-gray-300 bg-white px-3.5 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-100">
-        <span aria-hidden="true">←</span> Volver a mi panel
+        <span aria-hidden="true">←</span> {{ $panelTexto }}
     </a>
     <h2 class="font-semibold text-xl text-gray-800 leading-tight">
     {{ __('Editar mi Comercio') }}
@@ -14,11 +14,13 @@
 
 {{-- Aviso de cambios sin guardar:
      - Se compara el formulario (incluidos mapa, horarios, pagos y logo) con cómo estaba al abrir la página.
+       (De los archivos solo se mira nombre y tamaño: un campo de archivo vacío trae la fecha de "ahora"
+       y, si se comparara, siempre daría "hay cambios".)
      - Si hay cambios y el comerciante intenta salir, se le pregunta si guarda o descarta.
      - También avisa el navegador si cierra la pestaña o toca "atrás" con cambios sin guardar. --}}
 <div class="max-w-4xl mx-auto"
      x-data="{
-         url: @js(route('dashboard')),
+         url: @js($panelUrl),
          base: null,
          tocado: @js($errors->any()),
          aviso: false,
@@ -27,7 +29,7 @@
              const filas = [];
              for (const [clave, valor] of new FormData(this.$refs.form).entries()) {
                  if (clave === '_token' || clave === '_method') continue;
-                 filas.push(clave + '=' + (valor instanceof File ? 'archivo:' + valor.name + ':' + valor.size + ':' + valor.lastModified : valor));
+                 filas.push(clave + '=' + (valor instanceof File ? 'archivo:' + valor.name + ':' + valor.size : valor));
              }
              return filas.join('\n');
          },
@@ -46,7 +48,7 @@
          @click.self="aviso = false" data-aviso-cambios>
         <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" role="alertdialog" aria-modal="true" aria-labelledby="titulo-cambios">
             <h4 id="titulo-cambios" class="text-lg font-bold text-gray-800">Tenés cambios sin guardar</h4>
-            <p class="mt-2 text-gray-600">¿Querés aplicar los cambios antes de volver a tu panel?</p>
+            <p class="mt-2 text-gray-600">¿Querés aplicar los cambios antes de volver al panel?</p>
             <div class="mt-6 flex flex-col gap-2 sm:flex-row-reverse">
                 <button type="button" @click="guardar()" class="rounded-lg bg-[var(--primary-green)] px-5 py-2 font-bold text-white hover:bg-green-600">Guardar y volver</button>
                 <button type="button" @click="irAlPanel()" class="rounded-lg border border-red-300 px-5 py-2 font-semibold text-red-700 hover:bg-red-50">Salir sin guardar</button>

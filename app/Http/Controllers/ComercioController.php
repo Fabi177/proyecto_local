@@ -317,7 +317,10 @@ class ComercioController extends Controller
         $this->autorizarComercio($comercio);
 
         return view('comercios.edit', [
-            'comercio' => $comercio
+            'comercio' => $comercio,
+            // Adónde vuelve quien edita: el comerciante a su panel y el administrador a su listado de comercios.
+            'panelUrl' => route($this->rutaDePanel()),
+            'panelTexto' => Auth::user()->esAdmin() ? 'Volver al panel de administración' : 'Volver a mi panel',
         ]);
     }
 
@@ -380,7 +383,7 @@ class ComercioController extends Controller
         $comercio->update($validatedData);
 
         // 4. REDIRIGIR AL USUARIO
-        return redirect()->route('dashboard')->with('status', '¡Tu comercio ha sido actualizado con éxito!');
+        return redirect()->route($this->rutaDePanel())->with('status', '¡Tu comercio ha sido actualizado con éxito!');
     }
 
     // -------------------------------------------------------------------
@@ -399,12 +402,21 @@ class ComercioController extends Controller
         $comercio->delete();
 
         // Redirigir al dashboard con un mensaje de éxito
-        return redirect()->route('dashboard')->with('status', 'Tu comercio ha sido eliminado correctamente.');
+        return redirect()->route($this->rutaDePanel())->with('status', 'Tu comercio ha sido eliminado correctamente.');
     }
 
     // -------------------------------------------------------------------
     // --- AUTORIZACIÓN ---
     // -------------------------------------------------------------------
+
+    /**
+     * Ruta del "panel" de quien está editando: el administrador vuelve a su listado de
+     * comercios (/admin/comercios) y el comerciante a su dashboard.
+     */
+    private function rutaDePanel(): string
+    {
+        return Auth::user()->esAdmin() ? 'admin.comercios' : 'dashboard';
+    }
 
     /**
      * Cada comerciante solo puede editar o eliminar SUS comercios; el administrador puede con todos.

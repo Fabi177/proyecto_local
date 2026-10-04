@@ -184,7 +184,7 @@ test('el administrador puede eliminar un comercio ajeno', function () {
 
     $this->actingAs(crearUsuarioConRol('admin'))
         ->delete(route('comercio.destroy', $comercio))
-        ->assertRedirect(route('dashboard'));
+        ->assertRedirect(route('admin.comercios'));
 
     $this->assertModelMissing($comercio);
 });
