@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Comercio;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -245,9 +246,30 @@ class ComercioController extends Controller
                     : null,
             ],
             $this->datosVolverABusqueda(),
-            // El buscador y el botón "Volver" son para el cliente, no para el comerciante.
-            ['mostrarBuscador' => Auth::user()?->role !== 'comerciante']
+            // El buscador y el botón "Volver a los resultados" son para visitantes y clientes.
+            // El comerciante y el administrador, en cambio, vuelven a su propio panel.
+            ['mostrarBuscador' => ! in_array($usuario?->role, ['comerciante', 'admin'], true)],
+            $this->datosVolverAlPanel($usuario)
         ));
+    }
+
+    /**
+     * Botón "Volver al panel" del perfil público: solo para el comerciante (su panel)
+     * y el administrador (su panel de administración). Visitantes y clientes no lo ven.
+     *
+     * @return array{panelUrl: string|null, panelTexto: string|null}
+     */
+    private function datosVolverAlPanel(?User $usuario): array
+    {
+        if ($usuario?->esAdmin()) {
+            return ['panelUrl' => route('admin.index'), 'panelTexto' => 'Volver al panel de administración'];
+        }
+
+        if ($usuario?->role === 'comerciante') {
+            return ['panelUrl' => route('dashboard'), 'panelTexto' => 'Volver a mi panel'];
+        }
+
+        return ['panelUrl' => null, 'panelTexto' => null];
     }
 
     /**

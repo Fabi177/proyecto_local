@@ -19,6 +19,12 @@
 </style>
 <div class="perfil-barra">
     <div class="perfil-barra__izq">
+        @if ($panelUrl)
+            <!-- Comerciante y administrador: vuelven a su propio panel -->
+            <a href="{{ $panelUrl }}" class="perfil-volver">
+                <span aria-hidden="true">←</span> {{ $panelTexto }}
+            </a>
+        @endif
         @if ($mostrarBuscador)
             <!-- Vuelve a los resultados de la búsqueda que hizo el cliente -->
             <a href="{{ $volverUrl }}" class="perfil-volver">
