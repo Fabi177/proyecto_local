@@ -247,7 +247,7 @@ class ComercioController extends Controller
     private function datosVolverAlPanel(?User $usuario): array
     {
         if ($usuario?->esAdmin()) {
-            return ['panelUrl' => route('admin.index'), 'panelTexto' => 'Volver al panel de administración'];
+            return ['panelUrl' => route('admin.comercios'), 'panelTexto' => 'Volver al panel de administración'];
         }
 
         if ($usuario?->role === 'comerciante') {

@@ -1,11 +1,60 @@
 <x-comerciante-layout>
 <x-slot name="header">
-<h2 class="font-semibold text-xl text-gray-800 leading-tight">
-{{ __('Editar mi Comercio') }}
-</h2>
+<div class="flex flex-wrap items-center gap-3">
+    <!-- Si hay cambios sin guardar, en vez de salir directo se abre el aviso (ver abajo) -->
+    <a href="{{ route('dashboard') }}" x-data @click.prevent="$dispatch('intentar-volver')"
+       class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-gray-300 bg-white px-3.5 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-100">
+        <span aria-hidden="true">←</span> Volver a mi panel
+    </a>
+    <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+    {{ __('Editar mi Comercio') }}
+    </h2>
+</div>
 </x-slot>
 
-<div class="max-w-4xl mx-auto">
+{{-- Aviso de cambios sin guardar:
+     - Se compara el formulario (incluidos mapa, horarios, pagos y logo) con cómo estaba al abrir la página.
+     - Si hay cambios y el comerciante intenta salir, se le pregunta si guarda o descarta.
+     - También avisa el navegador si cierra la pestaña o toca "atrás" con cambios sin guardar. --}}
+<div class="max-w-4xl mx-auto"
+     x-data="{
+         url: @js(route('dashboard')),
+         base: null,
+         tocado: @js($errors->any()),
+         aviso: false,
+         saliendo: false,
+         foto() {
+             const filas = [];
+             for (const [clave, valor] of new FormData(this.$refs.form).entries()) {
+                 if (clave === '_token' || clave === '_method') continue;
+                 filas.push(clave + '=' + (valor instanceof File ? 'archivo:' + valor.name + ':' + valor.size + ':' + valor.lastModified : valor));
+             }
+             return filas.join('\n');
+         },
+         sucio() { return this.tocado || (this.base !== null && this.foto() !== this.base); },
+         intentar() { this.sucio() ? this.aviso = true : this.irAlPanel(); },
+         irAlPanel() { this.saliendo = true; window.location.href = this.url; },
+         guardar() { this.aviso = false; this.$refs.form.requestSubmit(); }
+     }"
+     x-init="setTimeout(() => base = foto(), 800)"
+     @intentar-volver.window="intentar()"
+     @keydown.escape.window="aviso = false"
+     @submit.window="if (! $event.defaultPrevented) saliendo = true"
+     @beforeunload.window="if (sucio() && ! saliendo) { $event.preventDefault(); $event.returnValue = ''; }">
+
+    <div x-show="aviso" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 p-4"
+         @click.self="aviso = false" data-aviso-cambios>
+        <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" role="alertdialog" aria-modal="true" aria-labelledby="titulo-cambios">
+            <h4 id="titulo-cambios" class="text-lg font-bold text-gray-800">Tenés cambios sin guardar</h4>
+            <p class="mt-2 text-gray-600">¿Querés aplicar los cambios antes de volver a tu panel?</p>
+            <div class="mt-6 flex flex-col gap-2 sm:flex-row-reverse">
+                <button type="button" @click="guardar()" class="rounded-lg bg-[var(--primary-green)] px-5 py-2 font-bold text-white hover:bg-green-600">Guardar y volver</button>
+                <button type="button" @click="irAlPanel()" class="rounded-lg border border-red-300 px-5 py-2 font-semibold text-red-700 hover:bg-red-50">Salir sin guardar</button>
+                <button type="button" @click="aviso = false" class="rounded-lg px-5 py-2 font-semibold text-gray-600 hover:bg-gray-100">Seguir editando</button>
+            </div>
+        </div>
+    </div>
+
     <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
 
         <div class="p-6 bg-gradient-to-r from-[var(--light-blue)] to-[var(--primary-green)] border-b border-gray-200">
@@ -18,7 +67,7 @@
         <!-- ================================== -->
         <!-- === FORMULARIO 1: ACTUALIZAR (PATCH) === -->
         <!-- ================================== -->
-        <form method="POST" action="{{ route('comercio.update', $comercio) }}" enctype="multipart/form-data">
+        <form method="POST" action="{{ route('comercio.update', $comercio) }}" enctype="multipart/form-data" x-ref="form">
             @csrf
             @method('PATCH')
 
