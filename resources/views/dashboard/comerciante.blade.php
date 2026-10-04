@@ -29,6 +29,9 @@
                                 @endif
                                 <div class="min-w-0">
                                     <h3 class="text-2xl font-bold text-gray-800 break-words">{{ $comercio->nombre }}</h3>
+                                    @unless ($comercio->habilitado)
+                                        <span class="mt-1 inline-block rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">Deshabilitado</span>
+                                    @endunless
                                     <p class="mt-1 text-sm text-gray-500 break-words">{{ $comercio->rubro }} · {{ $comercio->direccion }}</p>
                                 </div>
                             </div>

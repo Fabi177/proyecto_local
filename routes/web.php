@@ -85,6 +85,9 @@ Route::middleware('auth')->group(function () {
     // (D)ELETE: ELIMINA
     Route::delete('/comercio/{comercio}', [ComercioController::class, 'destroy'])->whereNumber('comercio')->name('comercio.destroy');
 
+    // Habilitar / deshabilitar: un comercio deshabilitado deja de mostrarse al público (no se borra nada).
+    Route::patch('/comercio/{comercio}/estado', [ComercioController::class, 'cambiarEstado'])->whereNumber('comercio')->name('comercio.estado');
+
     // Compatibilidad: la URL vieja (cuando había un solo comercio) ahora lleva al panel.
     Route::get('/comercio/editar', fn () => redirect()->route('dashboard'));
 });

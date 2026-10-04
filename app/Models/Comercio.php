@@ -126,6 +126,7 @@ class Comercio extends Model
     protected function casts(): array
     {
         return [
+            'habilitado' => 'boolean',
             'ingreso_discapacitados' => 'boolean',
             'rampa_acceso' => 'boolean',
             'estacionamiento' => 'boolean',

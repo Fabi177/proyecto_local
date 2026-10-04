@@ -43,7 +43,11 @@
                             <tbody class="divide-y divide-gray-100">
                                 @forelse ($comercios as $comercio)
                                     <tr>
-                                        <td class="py-3 pr-4 font-semibold text-gray-800">{{ $comercio->nombre }}</td>
+                                        <td class="py-3 pr-4 font-semibold text-gray-800">{{ $comercio->nombre }}
+                                            @unless ($comercio->habilitado)
+                                                <span class="ml-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">Deshabilitado</span>
+                                            @endunless
+                                        </td>
                                         <td class="py-3 pr-4 text-gray-600">{{ $comercio->rubro }}</td>
                                         <td class="py-3 pr-4 text-gray-600">
                                             {{ $comercio->user?->name ?? 'Sin dueño' }}

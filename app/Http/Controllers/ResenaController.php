@@ -21,6 +21,7 @@ class ResenaController extends Controller
     public function store(Request $request, Comercio $comercio): RedirectResponse
     {
         abort_unless($request->user()->esCliente(), 403, 'Solo los clientes pueden calificar comercios.');
+        abort_unless($comercio->habilitado, 404); // un comercio deshabilitado no recibe reseñas
 
         $datos = $request->validate($this->reglas(), $this->mensajes());
 

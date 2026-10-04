@@ -71,6 +71,7 @@ class ComercioController extends Controller
     private function consultaComercios(array $filtros)
     {
         $query = Comercio::latest()
+            ->where('habilitado', true)
             ->withAvg('resenas', 'calificacion')
             ->withCount('resenas');
 
@@ -121,6 +122,7 @@ class ComercioController extends Controller
         $empieza = "{$escapado}%";
 
         $comercios = Comercio::query()
+            ->where('habilitado', true)
             ->where(function ($q) use ($contiene) {
                 $q->whereRaw("LOWER(TRIM(nombre)) LIKE ? ESCAPE '!'", [$contiene])
                   ->orWhereRaw("LOWER(TRIM(descripcion)) LIKE ? ESCAPE '!'", [$contiene])
@@ -219,9 +221,16 @@ class ComercioController extends Controller
     {
         $usuario = Auth::user();
 
+        // Un comercio deshabilitado solo lo ven su dueño y el administrador.
+        abort_unless(
+            $comercio->habilitado || ($usuario && ($usuario->esAdmin() || $comercio->user_id === $usuario->id)),
+            404
+        );
+
         return view('comercios.show', array_merge(
             [
                 'comercio' => $comercio,
+                'deshabilitado' => ! $comercio->habilitado,
                 // Calificaciones y comentarios: se leen sin sesión; solo se escribe con sesión de cliente.
                 'resenas' => $comercio->resenas()->with('user:id,name')->latest()->paginate(10)->fragment('resenas'),
                 'promedio' => (float) $comercio->resenas()->avg('calificacion'),
@@ -395,7 +404,8 @@ class ComercioController extends Controller
      */
     public function destroy(Request $request, Comercio $comercio): RedirectResponse
     {
-        $this->autorizarComercio($comercio);
+        // Eliminar para siempre es solo del administrador; el comerciante deshabilita (ver cambiarEstado).
+        abort_unless(Auth::user()->esAdmin(), 404);
 
         // Eliminar el archivo del logo (si tenía) y después el comercio
         $this->borrarLogo($comercio->logo);
@@ -403,6 +413,23 @@ class ComercioController extends Controller
 
         // Redirigir al dashboard con un mensaje de éxito
         return redirect()->route($this->rutaDePanel())->with('status', 'Tu comercio ha sido eliminado correctamente.');
+    }
+
+    /**
+     * Habilita o deshabilita el comercio (si estaba habilitado lo deshabilita y viceversa).
+     * Deshabilitado: no aparece en el buscador, las sugerencias ni el perfil público,
+     * pero el dueño lo sigue viendo en su panel y puede volver a habilitarlo.
+     */
+    public function cambiarEstado(Comercio $comercio): RedirectResponse
+    {
+        $this->autorizarComercio($comercio);
+
+        $comercio->habilitado = ! $comercio->habilitado;
+        $comercio->save();
+
+        return redirect()->route($this->rutaDePanel())->with('status', $comercio->habilitado
+            ? 'Tu comercio fue habilitado: ya se muestra al público.'
+            : 'Tu comercio fue deshabilitado: ya no se muestra al público. Podés habilitarlo cuando quieras.');
     }
 
     // -------------------------------------------------------------------

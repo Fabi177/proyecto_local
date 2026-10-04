@@ -51,6 +51,11 @@
 
 <div class="py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        @if ($deshabilitado)
+            <div class="mb-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900" role="status" data-comercio-deshabilitado>
+                <strong>Comercio deshabilitado.</strong> No se muestra al público ni en el buscador; solo lo ves vos como dueño o administrador.
+            </div>
+        @endif
         @if (session('status_resena'))
             <!-- Aviso flotante arriba de la pantalla al calificar, editar o borrar una reseña (se cierra solo a los 4 s) -->
             <div x-data="{ visible: true }" x-init="setTimeout(() => visible = false, 4000)"

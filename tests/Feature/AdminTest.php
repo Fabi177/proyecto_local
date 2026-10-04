@@ -201,15 +201,15 @@ test('un comerciante sigue sin poder tocar los comercios de otro', function () {
     $this->assertModelExists($comercio);
 });
 
-test('un comerciante sigue pudiendo eliminar su propio comercio', function () {
+test('un comerciante ya no puede eliminar su comercio (lo deshabilita)', function () {
     $dueno = crearUsuarioConRol('comerciante');
     $comercio = crearComercioDeDueno($dueno);
 
     $this->actingAs($dueno)
         ->delete(route('comercio.destroy', $comercio))
-        ->assertRedirect(route('dashboard'));
+        ->assertNotFound();
 
-    $this->assertModelMissing($comercio);
+    $this->assertModelExists($comercio);
 });
 
 // ---------------------------------------------------------------------------

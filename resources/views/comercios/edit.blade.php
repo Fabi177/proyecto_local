@@ -262,30 +262,39 @@
         <!-- === FIN DEL FORMULARIO 1 === -->
 
 
-        <!--
-            =================================================
-            === FORMULARIO 2: ELIMINAR (DELETE) ===
-            =================================================
-        -->
-        <div class="p-6 md:p-8 border-t border-gray-200 bg-red-50 rounded-b-lg">
-            <h4 class="text-lg font-semibold text-red-800">Zona de Peligro</h4>
-            <p class="mt-1 text-sm text-red-700">
-                Una vez que elimines tu comercio, no hay vuelta atrás. Toda la información se perderá permanentemente.
-            </p>
+        <!-- === VISIBILIDAD DEL COMERCIO: habilitar / deshabilitar (PATCH) === -->
+        <div class="p-6 md:p-8 border-t border-gray-200 rounded-b-lg {{ $comercio->habilitado ? 'bg-amber-50' : 'bg-green-50' }}">
+            @if ($comercio->habilitado)
+                <h4 class="text-lg font-semibold text-amber-900">Visibilidad del comercio</h4>
+                <p class="mt-1 text-sm text-amber-800">
+                    Si lo deshabilitás, tu comercio deja de aparecer en el buscador y en el perfil público. No se borra nada y podés volver a habilitarlo cuando quieras.
+                </p>
+            @else
+                <h4 class="text-lg font-semibold text-green-900">Comercio deshabilitado</h4>
+                <p class="mt-1 text-sm text-green-800">
+                    Hoy tu comercio no se muestra al público. Habilitalo para que vuelva a aparecer en el buscador.
+                </p>
+            @endif
 
-            <form method="POST" action="{{ route('comercio.destroy', $comercio) }}" onsubmit="return confirm(@js('¿Estás 100% seguro de que querés eliminar «' . $comercio->nombre . '»? Esta acción no se puede deshacer.'));">
+            <form method="POST" action="{{ route('comercio.estado', $comercio) }}"
+                  @if ($comercio->habilitado) onsubmit="return confirm(@js('¿Deshabilitar «' . $comercio->nombre . '»? Dejará de mostrarse al público hasta que lo vuelvas a habilitar. Los cambios sin guardar de este formulario no se guardan.'));" @endif>
                 @csrf
-                @method('DELETE')
+                @method('PATCH')
 
                 <div class="mt-4">
-                    <button type="submit" class="inline-flex items-center px-6 py-3 bg-red-600 text-white font-bold rounded-lg shadow transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
-                        <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12.54 0c-.295.059-.59.119-.884.184m13.424 0c-.66.124-1.33.238-2.006.342M4.772 5.79l-.160.038c-.422.102-.823.232-1.206.386M4.772 5.79c-.062.138-.11.28-.15.424m.15-.424-.312 1.352a2.25 2.25 0 0 0 .584 2.262l.312.311a2.25 2.25 0 0 0 2.263.584l1.351-.312m.15-.424c.04-.144.078-.286.11-.428m7.76 0c.032.142.07.284.11.428m.11.428-.312 1.352a2.25 2.25 0 0 1-.584 2.262l-.312.311a2.25 2.25 0 0 1-2.263.584l-1.351-.312m-.15-.424c-.04-.144-.078-.286-.11-.428M5.21 3.24A2.25 2.25 0 0 1 7.456 1.5h9.088a2.25 2.25 0 0 1 2.246 1.74l.16.038m-11.488 0c.422.102.823.232 1.206.386m1.206-.386c.364.066.734.122 1.11.166m1.11-.166c.376-.044.746-.1 1.11-.166m1.11.166c.364.066.734.122 1.11.166M3.284 5.253c.295.059.59.119.884.184" /></svg>
-                        Eliminar este Comercio Permanentemente
-                    </button>
+                    @if ($comercio->habilitado)
+                        <button type="submit" class="inline-flex items-center px-6 py-3 bg-amber-600 text-white font-bold rounded-lg shadow transition hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
+                            Deshabilitar comercio
+                        </button>
+                    @else
+                        <button type="submit" class="inline-flex items-center px-6 py-3 bg-[var(--primary-green)] text-white font-bold rounded-lg shadow transition hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                            Habilitar comercio
+                        </button>
+                    @endif
                 </div>
             </form>
         </div>
-        <!-- === FIN DEL FORMULARIO 2 === -->
+        <!-- === FIN DE VISIBILIDAD === -->
 
     </div>
 </div>
