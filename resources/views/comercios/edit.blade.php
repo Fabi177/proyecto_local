@@ -159,10 +159,6 @@
 
                 @include('comercios.partials.selector-logo')
 
-                @include('comercios.partials.campo-direccion', ['valor' => old('direccion', $comercio->direccion)])
-
-                @include('comercios.partials.selector-localidad')
-
                 @include('comercios.partials.selector-ubicacion')
 
                 <div class="input-wrapper">
