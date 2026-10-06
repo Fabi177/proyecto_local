@@ -62,6 +62,15 @@
             .hero-campo input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 1.05rem; color: #111827; padding: 1rem 1.25rem 1rem .75rem; box-shadow: none; }
             .hero-campo input:focus { outline: 0; box-shadow: none; }
             .hero-campo input::placeholder { color: #6b7280; }
+            .hero-localidad { position: relative; width: min(22rem, 100%); margin-bottom: .75rem; }
+            .hero-loc-campo { display: flex; align-items: center; gap: .5rem; background: #fff; border-radius: 999px; box-shadow: 0 8px 22px rgba(0,0,0,.4); border: 3px solid transparent; padding: 0 .5rem 0 1rem; color: #6b7280; }
+            .hero-loc-campo:focus-within { border-color: #2ecc71; }
+            .hero-loc-campo input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: .95rem; color: #111827; padding: .7rem .25rem; box-shadow: none; }
+            .hero-loc-campo input:focus { outline: 0; box-shadow: none; }
+            .hero-loc-campo input::placeholder { color: #6b7280; }
+            .hero-loc-campo button { flex: none; border: 0; background: transparent; cursor: pointer; font-size: 1.4rem; line-height: 1; color: #6b7280; padding: .1rem .5rem; border-radius: 999px; }
+            .hero-loc-campo button:hover { color: #111827; }
+            .hero-loc-campo button[hidden] { display: none; }
             .hero-sug { position: absolute; left: 0; right: 0; top: calc(100% + .5rem); z-index: 10; margin: 0; padding: .35rem; list-style: none; background: #fff; color: #1f2937;
                 border-radius: 1rem; box-shadow: 0 18px 40px rgba(0,0,0,.4); max-height: 22rem; overflow-y: auto; }
             .hero-sug[hidden] { display: none; }
@@ -130,6 +139,19 @@
                     <!-- Buscador público: no pide registrarse -->
                     <div class="hero-buscador" id="hero-buscador">
                         <form action="{{ route('dashboard') }}" method="GET" role="search">
+                            <!-- Ciudad o código postal: al elegir una se abren los comercios de esa zona -->
+                            <input type="hidden" name="localidad" id="hero-loc-id" disabled>
+                            <div class="hero-localidad" id="hero-loc">
+                                <div class="hero-loc-campo">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/><path d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/></svg>
+                                    <input id="hero-loc-q" type="text" autocomplete="off" role="combobox"
+                                           aria-autocomplete="list" aria-expanded="false" aria-controls="hero-loc-sug"
+                                           aria-label="Ciudad o código postal" placeholder="Ciudad o código postal">
+                                    <button type="button" id="hero-loc-x" aria-label="Quitar ciudad" hidden>&times;</button>
+                                </div>
+                                <ul class="hero-sug" id="hero-loc-sug" role="listbox" aria-label="Sugerencias de ciudad o código postal" hidden></ul>
+                            </div>
+
                             <div class="hero-campo">
                                 <input id="hero-q" type="search" name="search" autocomplete="off" role="combobox"
                                        aria-autocomplete="list" aria-expanded="false" aria-controls="hero-sug"
@@ -286,6 +308,96 @@
                     } else if (e.key === 'Enter' && activo > -1 && items[activo]) {
                         e.preventDefault(); window.location.href = items[activo].url;
                     } else if (e.key === 'Escape' || e.key === 'Tab') { cerrar(); }
+                });
+                document.addEventListener('click', function (e) { if (!caja.contains(e.target)) cerrar(); });
+            })();
+
+            // Selector de ciudad / código postal de la portada (usa la ruta pública localidades.sugerencias).
+            // Al elegir una localidad se envía el formulario y se abren los comercios de esa zona.
+            // Enter en este campo nunca envía el formulario: solo elige la sugerencia marcada (o la única).
+            (function () {
+                var URL_LOC = @json(route('localidades.sugerencias'));
+                var q = document.getElementById('hero-loc-q');
+                var lista = document.getElementById('hero-loc-sug');
+                var caja = document.getElementById('hero-loc');
+                var idCampo = document.getElementById('hero-loc-id');
+                var borrar = document.getElementById('hero-loc-x');
+                var items = [], activo = -1, timer = null, ctl = null;
+                if (!q || !lista || !caja || !idCampo || !borrar) { return; } // sin buscador (comerciante o admin)
+
+                function texto() { return q.value.replace(/\s+/g, ' ').trim(); }
+                function hayElegida() { return !idCampo.disabled; }
+                function cerrar() { lista.hidden = true; q.setAttribute('aria-expanded', 'false'); activo = -1; }
+                function marcar() {
+                    Array.prototype.forEach.call(lista.querySelectorAll('li[role=option]'), function (li, i) {
+                        li.setAttribute('aria-selected', i === activo ? 'true' : 'false');
+                    });
+                }
+                function elegir(x) {
+                    if (ctl) ctl.abort();
+                    clearTimeout(timer);
+                    idCampo.value = x.id; idCampo.disabled = false;
+                    q.value = x.etiqueta; borrar.hidden = false;
+                    cerrar();
+                    var f = q.form;
+                    if (f.requestSubmit) { f.requestSubmit(); } else { f.submit(); }
+                }
+                function pintar(datos) {
+                    items = datos; lista.textContent = ''; activo = -1;
+                    datos.forEach(function (x) {
+                        var li = document.createElement('li'), a = document.createElement('a'), ini = document.createElement('span'),
+                            w = document.createElement('span'), b = document.createElement('b'), s = document.createElement('small');
+                        li.setAttribute('role', 'option'); a.href = '#'; ini.className = 'ini'; ini.textContent = '\uD83D\uDCCD';
+                        b.textContent = x.nombre;
+                        s.textContent = [x.codigo_postal, x.provincia, x.comercios + (x.comercios === 1 ? ' comercio' : ' comercios')].filter(Boolean).join(' \u00B7 ');
+                        a.addEventListener('click', function (e) { e.preventDefault(); elegir(x); });
+                        w.appendChild(b); w.appendChild(s); a.appendChild(ini); a.appendChild(w); li.appendChild(a); lista.appendChild(li);
+                    });
+                    if (!datos.length) {
+                        var v = document.createElement('li'); v.className = 'vacio'; v.textContent = 'No encontramos esa ciudad o código postal con comercios.'; lista.appendChild(v);
+                    }
+                    lista.hidden = false; q.setAttribute('aria-expanded', 'true');
+                }
+                function consultar(t) {
+                    if (ctl) ctl.abort();
+                    ctl = new AbortController();
+                    fetch(URL_LOC + '?q=' + encodeURIComponent(t), { signal: ctl.signal, headers: { 'Accept': 'application/json' } })
+                        .then(function (r) { return r.ok ? r.json() : { sugerencias: [] }; })
+                        .then(function (j) {
+                            // Si mientras esperábamos la persona siguió escribiendo, esta respuesta ya no sirve
+                            if ((hayElegida() ? '' : texto()) !== t) return;
+                            pintar(j.sugerencias || []);
+                        })
+                        .catch(function (e) { if (e.name !== 'AbortError') cerrar(); });
+                }
+
+                q.addEventListener('input', function () {
+                    // Si había una localidad elegida y la persona edita el texto, la elección ya no vale
+                    idCampo.disabled = true; idCampo.value = '';
+                    borrar.hidden = q.value === '';
+                    clearTimeout(timer);
+                    timer = setTimeout(function () { consultar(texto()); }, 200);
+                });
+                q.addEventListener('focus', function () { consultar(hayElegida() ? '' : texto()); });
+                q.addEventListener('keydown', function (e) {
+                    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                        if (!items.length || lista.hidden) return;
+                        e.preventDefault();
+                        var d = e.key === 'ArrowDown' ? 1 : -1;
+                        activo = activo === -1 ? (d > 0 ? 0 : items.length - 1) : (activo + d + items.length) % items.length;
+                        marcar();
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault(); // en este campo Enter nunca envía el formulario
+                        if (lista.hidden || !items.length) return;
+                        if (activo > -1 && items[activo]) { elegir(items[activo]); }
+                        else if (items.length === 1) { elegir(items[0]); }
+                    } else if (e.key === 'Escape' || e.key === 'Tab') { cerrar(); }
+                });
+                borrar.addEventListener('click', function () {
+                    if (ctl) ctl.abort();
+                    clearTimeout(timer);
+                    q.value = ''; idCampo.value = ''; idCampo.disabled = true; borrar.hidden = true;
+                    cerrar(); q.focus();
                 });
                 document.addEventListener('click', function (e) { if (!caja.contains(e.target)) cerrar(); });
             })();

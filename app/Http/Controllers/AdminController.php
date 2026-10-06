@@ -40,7 +40,7 @@ class AdminController extends Controller
     {
         $buscado = $this->textoBuscado($request);
 
-        $comercios = Comercio::with('user:id,name,email')
+        $comercios = Comercio::with(['user:id,name,email', 'localidad:id,nombre'])
             ->when($buscado !== '', function ($consulta) use ($buscado) {
                 $like = $this->patronLike($buscado);
                 $consulta->where(function ($q) use ($like) {

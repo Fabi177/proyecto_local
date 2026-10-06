@@ -35,6 +35,7 @@
                                 <tr>
                                     <th class="py-3 pr-4 font-semibold">Comercio</th>
                                     <th class="py-3 pr-4 font-semibold">Rubro</th>
+                                    <th class="py-3 pr-4 font-semibold">Localidad</th>
                                     <th class="py-3 pr-4 font-semibold">Dueño</th>
                                     <th class="py-3 pr-4 font-semibold">Creado</th>
                                     <th class="py-3 font-semibold">Acciones</th>
@@ -49,6 +50,7 @@
                                             @endunless
                                         </td>
                                         <td class="py-3 pr-4 text-gray-600">{{ $comercio->rubro }}</td>
+                                        <td class="py-3 pr-4 text-gray-600">{{ $comercio->localidad?->nombre ?? '—' }}</td>
                                         <td class="py-3 pr-4 text-gray-600">
                                             {{ $comercio->user?->name ?? 'Sin dueño' }}
                                             <span class="block text-xs text-gray-400">{{ $comercio->user?->email }}</span>
@@ -69,7 +71,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="5" class="py-6 text-center text-gray-500">No se encontraron comercios.</td>
+                                        <td colspan="6" class="py-6 text-center text-gray-500">No se encontraron comercios.</td>
                                     </tr>
                                 @endforelse
                             </tbody>

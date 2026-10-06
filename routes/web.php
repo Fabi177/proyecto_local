@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\LocalidadController;
 use App\Http\Controllers\NotasController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ResenaController;
@@ -27,6 +28,11 @@ Route::get('/comercios', fn (Request $request) => redirect()->route('dashboard',
 Route::get('/comercios/sugerencias', [ComercioController::class, 'sugerencias'])
     ->middleware('throttle:60,1')
     ->name('comercios.sugerencias');
+
+// Sugerencias en vivo del selector de ciudad / código postal (devuelve JSON).
+Route::get('/localidades/sugerencias', [LocalidadController::class, 'sugerencias'])
+    ->middleware('throttle:60,1')
+    ->name('localidades.sugerencias');
 
 // (R)EAD: Muestra el perfil público de UN comercio
 // (Debe ir después de las rutas protegidas específicas de comercio)

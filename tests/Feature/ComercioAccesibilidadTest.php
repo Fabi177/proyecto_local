@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Comercio;
+use App\Models\Localidad;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
@@ -117,6 +118,7 @@ test('al crear un comercio se guardan los tres checkboxes', function () {
     $this->actingAs($dueno)->post(route('comercio.store'), [
         'nombre' => 'Ferretería Sur',
         'direccion' => 'Calle 1 123',
+        'localidad_id' => Localidad::where('nombre', 'Leandro N. Alem')->value('id'),
         'rubro' => 'Ferretería',
         'ingreso_discapacitados' => '1',
         'rampa_acceso' => '1',

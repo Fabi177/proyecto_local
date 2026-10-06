@@ -106,6 +106,8 @@
                         </div>
                     </div>
 
+                    @include('comercios.partials.selector-localidad')
+
                     @include('comercios.partials.selector-ubicacion')
 
                     <div class="input-wrapper">

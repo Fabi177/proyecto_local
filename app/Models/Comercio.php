@@ -96,6 +96,7 @@ class Comercio extends Model
         'user_id',
         'nombre',
         'direccion',
+        'localidad_id',
         'latitud',
         'longitud',
         'logo',
@@ -169,6 +170,14 @@ class Comercio extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Localidad donde está el comercio (puede ser null en comercios muy viejos).
+     */
+    public function localidad(): BelongsTo
+    {
+        return $this->belongsTo(Localidad::class);
     }
 
     /**

@@ -6,6 +6,7 @@ import { registrarComponenteLogo } from './logo-comercio';
 import { registrarComponentesHorariosPagos } from './horarios-pagos';
 import { registrarBuscadorComercios } from './buscador-comercios';
 import { registrarAutocompletadoComercios } from './autocompletado-comercios';
+import { registrarAutocompletadoLocalidades } from './autocompletado-localidades';
 
 window.Alpine = Alpine;
 
@@ -23,5 +24,8 @@ registrarBuscadorComercios(Alpine);
 
 // Sugerencias en vivo (autocompletado) de los buscadores públicos. También antes de Alpine.start().
 registrarAutocompletadoComercios(Alpine);
+
+// Selector de ciudad / código postal con sugerencias (buscador público). También antes de Alpine.start().
+registrarAutocompletadoLocalidades(Alpine);
 
 Alpine.start();

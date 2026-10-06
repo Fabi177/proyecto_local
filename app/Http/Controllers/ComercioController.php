@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Comercio;
+use App\Models\Localidad;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -35,16 +36,24 @@ class ComercioController extends Controller
         $filtros = $this->filtrosDeBusqueda($request);
         $esComerciante = $usuario && $usuario->role === 'comerciante';
 
+        // Localidad elegida en el buscador. Si el id no existe (enlace viejo o a mano), se ignora
+        // en vez de mostrar una lista vacía sin explicación.
+        $localidadElegida = isset($filtros['localidad']) ? Localidad::find($filtros['localidad']) : null;
+        if (! $localidadElegida) {
+            unset($filtros['localidad']);
+        }
+
         return view('dashboard', [
             'comercios' => $esComerciante ? null : $this->consultaComercios($filtros)->paginate(12)->withQueryString(),
             'filters' => $filtros,
             'rubros' => Comercio::RUBROS,
+            'localidadElegida' => $localidadElegida,
         ]);
     }
 
     /**
-     * Toma del pedido el texto buscado y los rubros elegidos, ya limpios.
-     * Solo devuelve las claves que tienen algo ('search' y/o 'rubro').
+     * Toma del pedido el texto buscado, los rubros y la localidad elegidos, ya limpios.
+     * Solo devuelve las claves que tienen algo ('search', 'rubro' y/o 'localidad' con su id).
      */
     private function filtrosDeBusqueda(Request $request): array
     {
@@ -58,10 +67,18 @@ class ComercioController extends Controller
             ->values()
             ->all();
 
-        return array_filter(
+        $filtros = array_filter(
             ['search' => $search, 'rubro' => $rubros],
             fn ($valor) => $valor !== '' && $valor !== []
         );
+
+        // La localidad viaja como su id (número entero positivo); cualquier otra cosa se descarta.
+        $localidad = $request->input('localidad');
+        if (is_string($localidad) && ctype_digit($localidad) && (int) $localidad > 0) {
+            $filtros['localidad'] = (int) $localidad;
+        }
+
+        return $filtros;
     }
 
     /**
@@ -71,6 +88,7 @@ class ComercioController extends Controller
     private function consultaComercios(array $filtros)
     {
         $query = Comercio::latest()
+            ->with('localidad')
             ->where('habilitado', true)
             ->withAvg('resenas', 'calificacion')
             ->withCount('resenas');
@@ -92,6 +110,11 @@ class ComercioController extends Controller
             $marcas = implode(',', array_fill(0, count($rubros), '?'));
 
             $query->whereRaw("LOWER(TRIM(rubro)) IN ({$marcas})", $rubros);
+        });
+
+        // Filtro por localidad (id): solo los comercios de esa ciudad.
+        $query->when($filtros['localidad'] ?? null, function ($query, $localidadId) {
+            $query->where('localidad_id', $localidadId);
         });
 
         return $query;
@@ -151,7 +174,7 @@ class ComercioController extends Controller
     public function create(): View|RedirectResponse
     {
         // Un comerciante puede registrar todos los comercios que quiera.
-        return view('comercios.create');
+        return view('comercios.create', ['localidades' => $this->listaDeLocalidades()]);
     }
 
     /**
@@ -164,6 +187,7 @@ class ComercioController extends Controller
         $validatedData = $request->validate([
             'nombre' => ['required', 'string', 'max:255'],
             'direccion' => ['required', 'string', 'max:255'],
+            'localidad_id' => ['required', 'integer', 'exists:localidades,id'],
             'latitud' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitud'],
             'longitud' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitud'],
             'telefono' => ['nullable', 'string', 'max:50'],
@@ -188,7 +212,7 @@ class ComercioController extends Controller
             'red_instagram' => ['nullable', 'string', 'max:100'],
             'red_facebook' => ['nullable', 'string', 'max:100'],
             'red_whatsapp' => ['nullable', 'string', 'max:50'],
-        ], array_merge($this->mensajesLogo(), $this->mensajesHorarios()));
+        ], array_merge($this->mensajesLogo(), $this->mensajesHorarios(), $this->mensajesLocalidad()));
 
         // 2. PROCESAR LOS CHECKBOXES
         foreach (array_keys(Comercio::ACCESIBILIDAD) as $campo) {
@@ -292,6 +316,8 @@ class ComercioController extends Controller
             foreach ($consulta as $clave => $valor) {
                 if (in_array($clave, ['search', 'page'], true) && is_string($valor) && trim($valor) !== '') {
                     $filtros[$clave] = $valor;
+                } elseif ($clave === 'localidad' && is_string($valor) && ctype_digit($valor) && (int) $valor > 0) {
+                    $filtros['localidad'] = $valor;
                 } elseif ($clave === 'rubro') {
                     $rubros = array_values(array_filter(
                         Arr::wrap($valor),
@@ -327,6 +353,7 @@ class ComercioController extends Controller
 
         return view('comercios.edit', [
             'comercio' => $comercio,
+            'localidades' => $this->listaDeLocalidades(),
             // Adónde vuelve quien edita: el comerciante a su panel y el administrador a su listado de comercios.
             'panelUrl' => route($this->rutaDePanel()),
             'panelTexto' => Auth::user()->esAdmin() ? 'Volver al panel de administración' : 'Volver a mi panel',
@@ -345,6 +372,9 @@ class ComercioController extends Controller
         $validatedData = $request->validate([
             'nombre' => ['required', 'string', 'max:255'],
             'direccion' => ['required', 'string', 'max:255'],
+            // "sometimes": si el pedido no trae la localidad se conserva la que ya tiene el comercio;
+            // si la trae, tiene que ser válida (nunca vacía).
+            'localidad_id' => ['sometimes', 'required', 'integer', 'exists:localidades,id'],
             'latitud' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitud'],
             'longitud' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitud'],
             'telefono' => ['nullable', 'string', 'max:50'],
@@ -369,7 +399,7 @@ class ComercioController extends Controller
             'red_instagram' => ['nullable', 'string', 'max:100'],
             'red_facebook' => ['nullable', 'string', 'max:100'],
             'red_whatsapp' => ['nullable', 'string', 'max:50'],
-        ], array_merge($this->mensajesLogo(), $this->mensajesHorarios()));
+        ], array_merge($this->mensajesLogo(), $this->mensajesHorarios(), $this->mensajesLocalidad()));
 
         // 2. PROCESAR LOS CHECKBOXES
         foreach (array_keys(Comercio::ACCESIBILIDAD) as $campo) {
@@ -478,6 +508,30 @@ class ComercioController extends Controller
             'logo.mimes' => 'El logo debe ser un archivo JPG, PNG o WEBP.',
             'logo.max' => 'El logo no puede pesar más de 2 MB.',
             'logo.uploaded' => 'No se pudo subir el logo. Verificá que no pese más de 2 MB.',
+        ];
+    }
+
+    // -------------------------------------------------------------------
+    // --- AUXILIARES DE LOCALIDAD ---
+    // -------------------------------------------------------------------
+
+    /**
+     * Localidades para el desplegable de los formularios de alta y edición (por nombre).
+     */
+    private function listaDeLocalidades()
+    {
+        return Localidad::orderBy('nombre')->get(['id', 'nombre', 'codigo_postal']);
+    }
+
+    /**
+     * Mensajes de error en español para la validación de la localidad.
+     */
+    private function mensajesLocalidad(): array
+    {
+        return [
+            'localidad_id.required' => 'Elegí la localidad de tu comercio.',
+            'localidad_id.integer' => 'La localidad elegida no es válida.',
+            'localidad_id.exists' => 'La localidad elegida no es válida.',
         ];
     }
 

@@ -33,6 +33,39 @@
             </template>
 
             <div class="mt-6 flex flex-col gap-3 md:flex-row">
+                {{-- Ciudad o código postal: al elegir una se ven solo los comercios de esa zona.
+                     La lógica está en resources/js/autocompletado-localidades.js --}}
+                <div class="relative flex items-center md:w-72"
+                     x-data="autocompletadoLocalidades({ url: @js(route('localidades.sugerencias')), id: @js($localidadElegida?->id), texto: @js($localidadElegida?->etiqueta) })"
+                     @click.outside="cerrar()">
+                    <input type="hidden" name="localidad" :value="valorId" :disabled="!valorId">
+                    <input type="text"
+                           id="localidad-texto"
+                           x-model="texto"
+                           x-bind="entrada"
+                           role="combobox"
+                           aria-autocomplete="list"
+                           aria-haspopup="listbox"
+                           aria-label="Ciudad o código postal"
+                           autocomplete="off"
+                           class="block w-full rounded-lg border-gray-300 py-4 pl-12 pr-10 text-lg shadow-sm focus:border-[var(--primary-green)] focus:ring-[var(--primary-green)]"
+                           placeholder="Ciudad o código postal">
+
+                    @include('comercios.partials.sugerencias-localidades')
+
+                    <div class="pointer-events-none absolute left-0 pl-4">
+                        <svg class="w-6 h-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg>
+                    </div>
+                    <button type="button"
+                            x-show="texto !== ''"
+                            @click="limpiar()"
+                            style="display: none;"
+                            aria-label="Quitar ciudad"
+                            class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600">
+                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+
                 <div class="relative flex flex-1 items-center" x-data="autocompletadoComercios({ url: @js(route('comercios.sugerencias')) })" @click.outside="cerrar()">
                     <input type="text"
                            name="search"
@@ -118,6 +151,9 @@
                 @else
                     Todos los comercios
                 @endif
+                @if ($localidadElegida)
+                    <span class="font-normal text-gray-500">en {{ $localidadElegida->nombre }}</span>
+                @endif
                 <span class="font-normal text-gray-500">({{ $comercios->total() }})</span>
             </h4>
 
@@ -152,7 +188,7 @@
                                 <span class="text-gray-400">Sin calificaciones todavía</span>
                             @endif
                         </p>
-                        <p class="mt-1 break-words text-sm text-gray-500">{{ $comercio->direccion }}</p>
+                        <p class="mt-1 break-words text-sm text-gray-500">{{ $comercio->direccion }}@if ($comercio->localidad), {{ $comercio->localidad->nombre }}@endif</p>
 
                         <div class="mt-4 flex flex-1 items-end justify-end">
                             <a href="{{ route('comercio.show', $comercio) }}" class="inline-flex items-center rounded-lg bg-[var(--primary-green)] px-5 py-2 font-bold text-white shadow transition hover:bg-green-600">
