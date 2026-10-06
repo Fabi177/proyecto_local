@@ -52,6 +52,7 @@ export function registrarComponentesMapa(Alpine) {
             busqueda: '',
             buscando: false,
             mensaje: '',
+            porConfirmar: false,
 
             get resumen() {
                 if (this.lat === null) {
@@ -64,7 +65,23 @@ export function registrarComponentesMapa(Alpine) {
                 return this.tmpLat === null ? 'ninguna' : `${formato(this.tmpLat)}, ${formato(this.tmpLng)}`;
             },
 
+            // El comerciante eligió una dirección de las sugerencias: se abre el mapa en ese punto
+            // para que confirme (o arrastre el marcador si hace falta).
+            desdeDireccion(d) {
+                this.tmpLat = d.lat;
+                this.tmpLng = d.lng;
+                this.busqueda = d.texto;
+                this.mensaje = '';
+                this.porConfirmar = true;
+                this.$dispatch('open-modal', NOMBRE_MODAL);
+                this.$nextTick(() => {
+                    this.montarMapa();
+                    setTimeout(() => this.refrescarMapa(), 350);
+                });
+            },
+
             abrir() {
+                this.porConfirmar = false;
                 this.tmpLat = this.lat;
                 this.tmpLng = this.lng;
                 this.mensaje = '';

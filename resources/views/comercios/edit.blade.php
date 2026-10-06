@@ -159,13 +159,7 @@
 
                 @include('comercios.partials.selector-logo')
 
-                <div class="input-wrapper">
-                    <label for="direccion" class="input-label">{{ __('Dirección *') }}</label>
-                    <div class="input-field-container">
-                        <svg class="input-icon w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg>
-                        <x-text-input id="direccion" class="w-full input-field" type="text" name="direccion" :value="old('direccion', $comercio->direccion)" required />
-                    </div>
-                </div>
+                @include('comercios.partials.campo-direccion', ['valor' => old('direccion', $comercio->direccion)])
 
                 @include('comercios.partials.selector-localidad')
 

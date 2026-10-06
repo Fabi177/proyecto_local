@@ -14,7 +14,8 @@
 @endphp
 
 <div class="input-wrapper"
-     x-data="selectorUbicacion({ lat: @js($latInicial), lng: @js($lngInicial) })">
+     x-data="selectorUbicacion({ lat: @js($latInicial), lng: @js($lngInicial) })"
+     @direccion-elegida.window="desdeDireccion($event.detail)">
 
     <span class="input-label">{{ __('Ubicación en el mapa') }}</span>
 
@@ -51,6 +52,12 @@
             <p class="mt-1 text-sm text-gray-600">
                 Hacé clic en el mapa para colocar el marcador. Podés arrastrarlo para ajustar la posición exacta.
             </p>
+
+            <div x-show="porConfirmar" style="display: none;" data-confirmar-ubicacion
+                 class="mt-3 rounded-lg border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-900">
+                📍 Ubicamos tu dirección en el mapa. <strong>¿Es acá tu comercio?</strong>
+                Si no es exacto, arrastrá el marcador o hacé clic en el punto correcto y después tocá <strong>Confirmar ubicación</strong>.
+            </div>
 
             <div class="mt-4 flex flex-col sm:flex-row gap-2">
                 <input type="text"

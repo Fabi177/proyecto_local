@@ -242,11 +242,14 @@ test('la tarjeta del comercio muestra su localidad', function () {
         ->assertSee('Av. San Martín 100, Leandro N. Alem');
 });
 
-test('la portada trae el selector de ciudad o código postal', function () {
+test('la portada ya no trae el selector de ciudad ni el texto "L. N. Alem"', function () {
     $this->get('/')
         ->assertOk()
-        ->assertSee('id="hero-loc-q"', false)
-        ->assertSee('name="localidad"', false);
+        ->assertDontSee('id="hero-loc-q"', false)
+        ->assertDontSee('Ciudad o código postal')
+        ->assertDontSee('rubros de L. N. Alem')
+        ->assertSee('Busca comercios, servicios y rubros.')
+        ->assertSee('imagenes/fondo-azul.jpg', false);
 });
 
 test('el panel público trae el selector de ciudad o código postal', function () {
