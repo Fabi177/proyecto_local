@@ -43,9 +43,10 @@ class AdminController extends Controller
         $comercios = Comercio::with(['user:id,name,email', 'localidad:id,nombre'])
             ->when($buscado !== '', function ($consulta) use ($buscado) {
                 $like = $this->patronLike($buscado);
-                $consulta->where(function ($q) use ($like) {
+                $consulta->where(function ($q) use ($like, $buscado) {
                     $q->whereRaw("LOWER(nombre) LIKE ? ESCAPE '!'", [$like])
                       ->orWhereRaw("LOWER(rubro) LIKE ? ESCAPE '!'", [$like])
+                      ->orCoincideRubro($buscado)
                       ->orWhereRaw("LOWER(direccion) LIKE ? ESCAPE '!'", [$like]);
                 });
             })

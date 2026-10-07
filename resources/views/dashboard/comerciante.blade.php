@@ -2,7 +2,7 @@
     // Todos los comercios del comerciante, ordenados por nombre
     $comercios = Auth::user()->comercios()->with('localidad')->orderBy('nombre')->get();
     // Un texto por comercio para el buscador en vivo (mismo orden que las tarjetas)
-    $textosBusqueda = $comercios->map(fn ($c) => trim($c->nombre . ' ' . $c->rubro . ' ' . $c->direccion . ' ' . $c->localidad?->nombre))->all();
+    $textosBusqueda = $comercios->map(fn ($c) => trim($c->nombre . ' ' . $c->rubros_texto . ' ' . $c->direccion . ' ' . $c->localidad?->nombre))->all();
 @endphp
 
 @if ($comercios->isNotEmpty())
@@ -32,7 +32,7 @@
                                     @unless ($comercio->habilitado)
                                         <span class="mt-1 inline-block rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">Deshabilitado</span>
                                     @endunless
-                                    <p class="mt-1 text-sm text-gray-500 break-words">{{ $comercio->rubro }} · {{ $comercio->direccion }}@if ($comercio->localidad), {{ $comercio->localidad->nombre }}@endif</p>
+                                    <p class="mt-1 text-sm text-gray-500 break-words">{{ $comercio->rubrosResumen() }} · {{ $comercio->direccion }}@if ($comercio->localidad), {{ $comercio->localidad->nombre }}@endif</p>
                                 </div>
                             </div>
 

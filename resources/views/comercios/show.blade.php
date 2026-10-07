@@ -166,7 +166,11 @@
 
                     <!-- Nombre y Rubro -->
                     <h1 class="text-4xl font-bold text-gray-900">{{ $comercio->nombre }}</h1>
-                    <p class="mt-1 text-xl font-medium text-[var(--primary-green)]">{{ $comercio->rubro }}</p>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                        @foreach ($comercio->rubros_etiquetas as $rubroEtiqueta)
+                            <span class="inline-block rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-800">{{ $rubroEtiqueta }}</span>
+                        @endforeach
+                    </div>
 
                     <!-- Descripción -->
                     @if ($comercio->descripcion)

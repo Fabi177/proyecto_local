@@ -119,7 +119,7 @@ test('al crear un comercio se guardan los tres checkboxes', function () {
         'nombre' => 'Ferretería Sur',
         'direccion' => 'Calle 1 123',
         'localidad_id' => Localidad::where('nombre', 'Leandro N. Alem')->value('id'),
-        'rubro' => 'Ferretería',
+        'rubros' => ['Ferreteria'],
         'ingreso_discapacitados' => '1',
         'rampa_acceso' => '1',
     ])->assertSessionHasNoErrors();
@@ -141,7 +141,7 @@ test('al editar se pueden destildar y tildar los checkboxes', function () {
     $this->actingAs($dueno)->patch(route('comercio.update', $comercio), [
         'nombre' => $comercio->nombre,
         'direccion' => $comercio->direccion,
-        'rubro' => $comercio->rubro,
+        'rubros' => ['Panaderia'],
         'estacionamiento' => '1',
     ])->assertSessionHasNoErrors();
 

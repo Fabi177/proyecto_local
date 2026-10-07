@@ -284,7 +284,7 @@ function datosDeComercio(array $extra = []): array
     return array_merge([
         'nombre' => 'Ferretería Sur',
         'direccion' => 'Calle 1 123',
-        'rubro' => 'Ferreteria',
+        'rubros' => ['Ferreteria'],
     ], $extra);
 }
 

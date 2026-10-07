@@ -96,7 +96,7 @@ test('el admin que edita un comercio ajeno vuelve a /admin/comercios, no a /admi
 
 test('al guardar, el admin vuelve a /admin/comercios y el comerciante a su dashboard', function () {
     $comercio = comercioParaVolver();
-    $datos = ['nombre' => 'Nuevo nombre', 'direccion' => 'Calle 1', 'rubro' => 'Cafe'];
+    $datos = ['nombre' => 'Nuevo nombre', 'direccion' => 'Calle 1', 'rubros' => ['Cafe']];
 
     $this->actingAs(User::factory()->create(['role' => 'admin']))
         ->patch(route('comercio.update', $comercio), $datos)

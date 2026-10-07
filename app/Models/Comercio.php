@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\Rubros;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo; // <-- Importante para la relación
@@ -41,53 +43,6 @@ class Comercio extends Model
     ];
 
     /**
-     * Rubros disponibles, agrupados (valor guardado => etiqueta que se muestra).
-     *
-     * Son los mismos que ofrece el campo "Rubro / Categoría *" del formulario del
-     * comerciante. Los usa el filtro por rubro del dashboard público.
-     */
-    public const RUBROS = [
-        'Gastronomía' => [
-            'Restaurante' => 'Restaurante',
-            'Cafe' => 'Cafetería / Bar',
-            'Panaderia' => 'Panadería / Pastelería',
-            'Supermercado' => 'Supermercado / Almacén',
-            'Verduleria' => 'Verdulería / Frutería',
-            'Carniceria' => 'Carnicería / Pescadería',
-            'Delivery' => 'Solo Delivery',
-        ],
-        'Tiendas y Compras' => [
-            'Indumentaria' => 'Indumentaria y Accesorios',
-            'Calzado' => 'Zapatería',
-            'Tecnologia' => 'Tecnología / Computación',
-            'Hogar' => 'Hogar / Decoración / Muebles',
-            'Libreria' => 'Librería / Artística',
-            'Jugueteria' => 'Juguetería',
-            'Ferreteria' => 'Ferretería',
-            'Kiosco' => 'Kiosco / Drugstore',
-        ],
-        'Salud y Bienestar' => [
-            'Farmacia' => 'Farmacia',
-            'Optica' => 'Óptica',
-            'Gimnasio' => 'Gimnasio / Fitness',
-            'Peluqueria' => 'Peluquería / Barbería',
-            'Estetica' => 'Belleza / Estética',
-        ],
-        'Servicios y Profesionales' => [
-            'Mecanico' => 'Taller Mecánico / Repuestos',
-            'Mascotas' => 'Veterinaria / Pet Shop',
-            'Lavanderia' => 'Lavandería / Tintorería',
-            'ReparacionesHogar' => 'Reparaciones del Hogar (Plomería, etc.)',
-            'ServiciosProfesionales' => 'Servicios Profesionales (Abogado, Contador)',
-        ],
-        'Ocio y Otros' => [
-            'Hoteleria' => 'Hotelería / Turismo',
-            'Entretenimiento' => 'Entretenimiento',
-            'Otro' => 'Otro',
-        ],
-    ];
-
-    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
@@ -103,6 +58,7 @@ class Comercio extends Model
         'telefono',
         'descripcion',
         'rubro',
+        'rubros',
         'horarios_atencion',
         'horarios_config',
         'dias_no_laborales',
@@ -128,6 +84,7 @@ class Comercio extends Model
     {
         return [
             'habilitado' => 'boolean',
+            'rubros' => 'array',
             'ingreso_discapacitados' => 'boolean',
             'rampa_acceso' => 'boolean',
             'estacionamiento' => 'boolean',
@@ -137,6 +94,98 @@ class Comercio extends Model
             'latitud' => 'float',
             'longitud' => 'float',
         ];
+    }
+
+    /**
+     * Mantiene sincronizados "rubros" (la lista completa) y "rubro" (el principal = el primero).
+     *
+     * - Si se cargan "rubros", el primero pasa a ser "rubro".
+     * - Si solo se cambia el texto "rubro" (código viejo, consola), pasa a ser el único rubro.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Comercio $comercio) {
+            $rubros = array_values(array_unique(array_filter(
+                (array) $comercio->rubros,
+                fn ($rubro) => is_string($rubro) && trim($rubro) !== ''
+            )));
+
+            if ($comercio->isDirty('rubro') && ! $comercio->isDirty('rubros')) {
+                $rubros = filled($comercio->rubro) ? [trim($comercio->rubro)] : [];
+            }
+
+            if ($rubros !== []) {
+                $comercio->rubros = $rubros;
+                $comercio->rubro = $rubros[0];
+            }
+        });
+    }
+
+    /**
+     * Etiquetas de todos los rubros del comercio, en orden: ["Cafetería", "Bar / Pub"].
+     * Uso en las vistas: $comercio->rubros_etiquetas
+     *
+     * @return array<int, string>
+     */
+    public function getRubrosEtiquetasAttribute(): array
+    {
+        return Rubros::etiquetas($this->rubros ?: array_filter([$this->rubro]));
+    }
+
+    /**
+     * Todos los rubros en un solo texto: "Cafetería, Bar / Pub, Pastelería".
+     */
+    public function getRubrosTextoAttribute(): string
+    {
+        return implode(', ', $this->rubros_etiquetas);
+    }
+
+    /**
+     * Texto corto para listados: los primeros rubros y cuántos más hay ("Cafetería, Bar / Pub +2").
+     */
+    public function rubrosResumen(int $maximo = 2): string
+    {
+        $etiquetas = $this->rubros_etiquetas;
+        $resumen = implode(', ', array_slice($etiquetas, 0, $maximo));
+
+        return count($etiquetas) > $maximo ? $resumen . ' +' . (count($etiquetas) - $maximo) : $resumen;
+    }
+
+    /**
+     * Comercios que tengan ALGUNO de los rubros indicados (claves).
+     *
+     * @param  array<int, string>  $claves
+     */
+    public function scopeConAlgunRubro(Builder $consulta, array $claves): Builder
+    {
+        $claves = array_values(array_filter(array_map('trim', $claves), fn ($clave) => $clave !== ''));
+
+        if ($claves === []) {
+            return $consulta;
+        }
+
+        return $consulta->where(function (Builder $q) use ($claves) {
+            foreach ($claves as $clave) {
+                $q->orWhereJsonContains('rubros', $clave);
+            }
+
+            // Red de seguridad: el rubro principal también cuenta (por si una fila no trae la lista).
+            $marcas = implode(',', array_fill(0, count($claves), '?'));
+            $q->orWhereRaw("LOWER(TRIM(rubro)) IN ({$marcas})", array_map('mb_strtolower', $claves));
+        });
+    }
+
+    /**
+     * Para usar DENTRO de un grupo de búsqueda por texto: suma los comercios que tengan un rubro
+     * cuyo nombre contenga el texto ("pizz" encuentra a los de Pizzería).
+     */
+    public function scopeOrCoincideRubro(Builder $consulta, string $texto): Builder
+    {
+        foreach (Rubros::clavesQueCoinciden($texto) as $clave) {
+            $consulta->orWhereJsonContains('rubros', $clave);
+        }
+
+        return $consulta;
     }
 
     /**

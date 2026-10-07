@@ -33,7 +33,7 @@
                     <h4 class="text-lg font-semibold text-gray-800">Información Básica</h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
 
-                        <div class="input-wrapper">
+                        <div class="input-wrapper md:col-span-2">
                             <label for="nombre" class="input-label">{{ __('Nombre del Comercio *') }}</label>
                             <div class="input-field-container">
                                 <svg class="input-icon w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5m-3 0V21m0-11.422L2.25 10.5 12 5.25l9.75 5.25-9.75 5.25Zm0 0V21m0-4.5H9.75M12 9V3M12 9l3-1.5M12 9l-3-1.5M12 9l3 1.5M12 9l-3 1.5M12 9V3M12 9l3 1.5" /></svg>
@@ -41,59 +41,8 @@
                             </div>
                         </div>
 
-                        <div class="input-wrapper">
-                            <label for="rubro" class="input-label">{{ __('Rubro / Categoría *') }}</label>
-                            <div class="input-field-container">
-                                <svg class="input-icon w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25A2.25 2.25 0 0 1 13.5 8.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" /></svg>
-
-                                <select id="rubro" name="rubro" class="input-field" required>
-                                    <option value="" disabled {{ old('rubro') ? '' : 'selected' }}>Selecciona un rubro...</option>
-
-                                    <optgroup label="Gastronomía">
-                                        <option value="Restaurante" {{ old('rubro') == 'Restaurante' ? 'selected' : '' }}>Restaurante</option>
-                                        <option value="Cafe" {{ old('rubro') == 'Cafe' ? 'selected' : '' }}>Cafetería / Bar</option>
-                                        <option value="Panaderia" {{ old('rubro') == 'Panaderia' ? 'selected' : '' }}>Panadería / Pastelería</option>
-                                        <option value="Supermercado" {{ old('rubro') == 'Supermercado' ? 'selected' : '' }}>Supermercado / Almacén</option>
-                                        <option value="Verduleria" {{ old('rubro') == 'Verduleria' ? 'selected' : '' }}>Verdulería / Frutería</option>
-                                        <option value="Carniceria" {{ old('rubro') == 'Carniceria' ? 'selected' : '' }}>Carnicería / Pescadería</option>
-                                        <option value="Delivery" {{ old('rubro') == 'Delivery' ? 'selected' : '' }}>Solo Delivery</option>
-                                    </optgroup>
-
-                                    <optgroup label="Tiendas y Compras">
-                                        <option value="Indumentaria" {{ old('rubro') == 'Indumentaria' ? 'selected' : '' }}>Indumentaria y Accesorios</option>
-                                        <option value="Calzado" {{ old('rubro') == 'Calzado' ? 'selected' : '' }}>Zapatería</option>
-                                        <option value="Tecnologia" {{ old('rubro') == 'Tecnologia' ? 'selected' : '' }}>Tecnología / Computación</option>
-                                        <option value="Hogar" {{ old('rubro') == 'Hogar' ? 'selected' : '' }}>Hogar / Decoración / Muebles</option>
-                                        <option value="Libreria" {{ old('rubro') == 'Libreria' ? 'selected' : '' }}>Librería / Artística</option>
-                                        <option value="Jugueteria" {{ old('rubro') == 'Jugueteria' ? 'selected' : '' }}>Juguetería</option>
-                                        <option value="Ferreteria" {{ old('rubro') == 'Ferreteria' ? 'selected' : '' }}>Ferretería</option>
-                                        <option value="Kiosco" {{ old('rubro') == 'Kiosco' ? 'selected' : '' }}>Kiosco / Drugstore</option>
-                                    </optgroup>
-
-                                    <optgroup label="Salud y Bienestar">
-                                        <option value="Farmacia" {{ old('rubro') == 'Farmacia' ? 'selected' : '' }}>Farmacia</option>
-                                        <option value="Optica" {{ old('rubro') == 'Optica' ? 'selected' : '' }}>Óptica</option>
-                                        <option value="Gimnasio" {{ old('rubro') == 'Gimnasio' ? 'selected' : '' }}>Gimnasio / Fitness</option>
-                                        <option value="Peluqueria" {{ old('rubro') == 'Peluqueria' ? 'selected' : '' }}>Peluquería / Barbería</option>
-                                        <option value="Estetica" {{ old('rubro') == 'Estetica' ? 'selected' : '' }}>Belleza / Estética</option>
-                                    </optgroup>
-
-                                    <optgroup label="Servicios y Profesionales">
-                                        <option value="Mecanico" {{ old('rubro') == 'Mecanico' ? 'selected' : '' }}>Taller Mecánico / Repuestos</option>
-                                        <option value="Mascotas" {{ old('rubro') == 'Mascotas' ? 'selected' : '' }}>Veterinaria / Pet Shop</option>
-                                        <option value="Lavanderia" {{ old('rubro') == 'Lavanderia' ? 'selected' : '' }}>Lavandería / Tintorería</option>
-                                        <option value="ReparacionesHogar" {{ old('rubro') == 'ReparacionesHogar' ? 'selected' : '' }}>Reparaciones del Hogar (Plomería, etc.)</option>
-                                        <option value="ServiciosProfesionales" {{ old('rubro') == 'ServiciosProfesionales' ? 'selected' : '' }}>Servicios Profesionales (Abogado, Contador)</option>
-                                    </optgroup>
-
-                                    <optgroup label="Ocio y Otros">
-                                        <option value="Hoteleria" {{ old('rubro') == 'Hoteleria' ? 'selected' : '' }}>Hotelería / Turismo</option>
-                                        <option value="Entretenimiento" {{ old('rubro') == 'Entretenimiento' ? 'selected' : '' }}>Entretenimiento</option>
-                                        <option value="Otro" {{ old('rubro') == 'Otro' ? 'selected' : '' }}>Otro</option>
-                                    </optgroup>
-                                </select>
-                            </div>
-                        </div>
+                        <!-- Rubros (se pueden elegir varios) -->
+                        @include('comercios.partials.selector-rubros', ['seleccionados' => []])
                     </div>
 
                     @include('comercios.partials.selector-logo')

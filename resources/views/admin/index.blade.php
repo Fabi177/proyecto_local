@@ -48,7 +48,7 @@
                         <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-4">
                             <div class="min-w-0">
                                 <a href="{{ route('comercio.show', ['comercio' => $comercio->id]) }}" class="font-semibold text-gray-800 hover:underline break-words">{{ $comercio->nombre }}</a>
-                                <div class="text-sm text-gray-500 break-words">{{ $comercio->rubro }} · {{ $comercio->user?->name ?? 'Sin dueño' }}</div>
+                                <div class="text-sm text-gray-500 break-words">{{ $comercio->rubrosResumen() }} · {{ $comercio->user?->name ?? 'Sin dueño' }}</div>
                             </div>
                             <div class="text-sm text-gray-500">{{ $comercio->created_at?->format('d/m/Y') }}</div>
                         </div>

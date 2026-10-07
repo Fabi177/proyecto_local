@@ -5,12 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Comercio;
 use App\Models\Localidad;
 use App\Models\User;
+use App\Support\Rubros;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ComercioController extends Controller
@@ -46,7 +48,7 @@ class ComercioController extends Controller
         return view('dashboard', [
             'comercios' => $esComerciante ? null : $this->consultaComercios($filtros)->paginate(12)->withQueryString(),
             'filters' => $filtros,
-            'rubros' => Comercio::RUBROS,
+            'categorias' => Rubros::categorias(),
             'localidadElegida' => $localidadElegida,
         ]);
     }
@@ -62,7 +64,7 @@ class ComercioController extends Controller
 
         $rubros = collect(Arr::wrap($request->input('rubro')))
             ->filter(fn ($rubro) => is_string($rubro) && trim($rubro) !== '')
-            ->map(fn ($rubro) => trim($rubro))
+            ->map(fn ($rubro) => Rubros::canonica($rubro))
             ->unique()
             ->values()
             ->all();
@@ -93,24 +95,20 @@ class ComercioController extends Controller
             ->withAvg('resenas', 'calificacion')
             ->withCount('resenas');
 
-        // Búsqueda general: nombre, descripción o rubro.
+        // Búsqueda general: nombre, descripción o rubro (por su clave o por su nombre: "pizz" encuentra Pizzería).
         $query->when($filtros['search'] ?? null, function ($query, $searchTerm) {
             $query->where(function ($q) use ($searchTerm) {
                 $searchTerm = strtolower(trim($searchTerm));
 
                 $q->whereRaw('LOWER(TRIM(nombre)) LIKE ?', ["%{$searchTerm}%"])
                   ->orWhereRaw('LOWER(TRIM(descripcion)) LIKE ?', ["%{$searchTerm}%"])
-                  ->orWhereRaw('LOWER(TRIM(rubro)) LIKE ?', ["%{$searchTerm}%"]);
+                  ->orWhereRaw('LOWER(TRIM(rubro)) LIKE ?', ["%{$searchTerm}%"])
+                  ->orCoincideRubro($searchTerm);
             });
         });
 
         // Filtro por rubro (uno o varios): el comercio tiene que estar en alguno de los elegidos.
-        $query->when($filtros['rubro'] ?? null, function ($query, $rubros) {
-            $rubros = array_map(fn ($rubro) => mb_strtolower(trim($rubro)), $rubros);
-            $marcas = implode(',', array_fill(0, count($rubros), '?'));
-
-            $query->whereRaw("LOWER(TRIM(rubro)) IN ({$marcas})", $rubros);
-        });
+        $query->when($filtros['rubro'] ?? null, fn ($query, $rubros) => $query->conAlgunRubro($rubros));
 
         // Filtro por localidad (id): solo los comercios de esa ciudad.
         $query->when($filtros['localidad'] ?? null, function ($query, $localidadId) {
@@ -146,21 +144,22 @@ class ComercioController extends Controller
 
         $comercios = Comercio::query()
             ->where('habilitado', true)
-            ->where(function ($q) use ($contiene) {
+            ->where(function ($q) use ($contiene, $termino) {
                 $q->whereRaw("LOWER(TRIM(nombre)) LIKE ? ESCAPE '!'", [$contiene])
                   ->orWhereRaw("LOWER(TRIM(descripcion)) LIKE ? ESCAPE '!'", [$contiene])
-                  ->orWhereRaw("LOWER(TRIM(rubro)) LIKE ? ESCAPE '!'", [$contiene]);
+                  ->orWhereRaw("LOWER(TRIM(rubro)) LIKE ? ESCAPE '!'", [$contiene])
+                  ->orCoincideRubro($termino);
             })
             ->orderByRaw("CASE WHEN LOWER(TRIM(nombre)) LIKE ? ESCAPE '!' THEN 0 ELSE 1 END", [$empieza])
             ->orderBy('nombre')
             ->limit(8)
-            ->get(['id', 'nombre', 'rubro', 'direccion', 'logo']);
+            ->get(['id', 'nombre', 'rubro', 'rubros', 'direccion', 'logo']);
 
         return response()->json([
             'sugerencias' => $comercios->map(fn (Comercio $comercio) => [
                 'id' => $comercio->id,
                 'nombre' => $comercio->nombre,
-                'rubro' => $comercio->rubro,
+                'rubro' => $comercio->rubrosResumen(),
                 'direccion' => $comercio->direccion,
                 'logo' => $comercio->logo_url,
                 'url' => route('comercio.show', ['comercio' => $comercio->id]),
@@ -192,7 +191,8 @@ class ComercioController extends Controller
             'longitud' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitud'],
             'telefono' => ['nullable', 'string', 'max:50'],
             'descripcion' => ['nullable', 'string'],
-            'rubro' => ['required', 'string', 'max:100'],
+            'rubros' => ['required', 'array', 'min:1'],
+            'rubros.*' => ['string', Rule::in(Rubros::claves())],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'horarios_atencion' => ['nullable', 'string', 'max:1500'],
             'dias_no_laborales' => ['nullable', 'string', 'max:3000'],
@@ -212,7 +212,7 @@ class ComercioController extends Controller
             'red_instagram' => ['nullable', 'string', 'max:100'],
             'red_facebook' => ['nullable', 'string', 'max:100'],
             'red_whatsapp' => ['nullable', 'string', 'max:50'],
-        ], array_merge($this->mensajesLogo(), $this->mensajesHorarios(), $this->mensajesLocalidad()));
+        ], array_merge($this->mensajesLogo(), $this->mensajesHorarios(), $this->mensajesLocalidad(), $this->mensajesRubros()));
 
         // 2. PROCESAR LOS CHECKBOXES
         foreach (array_keys(Comercio::ACCESIBILIDAD) as $campo) {
@@ -379,7 +379,8 @@ class ComercioController extends Controller
             'longitud' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitud'],
             'telefono' => ['nullable', 'string', 'max:50'],
             'descripcion' => ['nullable', 'string'],
-            'rubro' => ['required', 'string', 'max:100'],
+            'rubros' => ['required', 'array', 'min:1'],
+            'rubros.*' => ['string', Rule::in(Rubros::claves())],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'horarios_atencion' => ['nullable', 'string', 'max:1500'],
             'dias_no_laborales' => ['nullable', 'string', 'max:3000'],
@@ -399,7 +400,7 @@ class ComercioController extends Controller
             'red_instagram' => ['nullable', 'string', 'max:100'],
             'red_facebook' => ['nullable', 'string', 'max:100'],
             'red_whatsapp' => ['nullable', 'string', 'max:50'],
-        ], array_merge($this->mensajesLogo(), $this->mensajesHorarios(), $this->mensajesLocalidad()));
+        ], array_merge($this->mensajesLogo(), $this->mensajesHorarios(), $this->mensajesLocalidad(), $this->mensajesRubros()));
 
         // 2. PROCESAR LOS CHECKBOXES
         foreach (array_keys(Comercio::ACCESIBILIDAD) as $campo) {
@@ -508,6 +509,20 @@ class ComercioController extends Controller
             'logo.mimes' => 'El logo debe ser un archivo JPG, PNG o WEBP.',
             'logo.max' => 'El logo no puede pesar más de 2 MB.',
             'logo.uploaded' => 'No se pudo subir el logo. Verificá que no pese más de 2 MB.',
+        ];
+    }
+
+    /**
+     * Mensajes de error en español para la validación de los rubros.
+     */
+    private function mensajesRubros(): array
+    {
+        return [
+            'rubros.required' => 'Elegí al menos un rubro para tu comercio.',
+            'rubros.array' => 'Los rubros elegidos no son válidos. Volvé a elegirlos.',
+            'rubros.min' => 'Elegí al menos un rubro para tu comercio.',
+            'rubros.*.in' => 'Uno de los rubros elegidos no es válido.',
+            'rubros.*.string' => 'Uno de los rubros elegidos no es válido.',
         ];
     }
 

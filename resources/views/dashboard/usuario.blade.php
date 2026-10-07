@@ -1,8 +1,10 @@
 <!-- Panel que ven el VISITANTE y el CLIENTE: buscador, filtro por rubro y todos los comercios -->
 @php
-    // Rubros elegidos (vienen de la URL ya limpios) y mapa valor => etiqueta para mostrarlos
+    // Rubros elegidos (vienen de la URL ya limpios), mapa clave => etiqueta para mostrarlos
+    // y categoría => claves de sus rubros (para contar cuántos hay marcados en cada una)
     $rubrosElegidos = $filters['rubro'] ?? [];
-    $etiquetas = collect($rubros)->flatMap(fn ($grupo) => $grupo)->all();
+    $etiquetas = \App\Support\Rubros::planos();
+    $grupos = \App\Support\Rubros::clavesPorCategoria();
 @endphp
 
 <div class="bg-white overflow-visible shadow-xl sm:rounded-lg">
@@ -16,14 +18,13 @@
         {{-- Un solo formulario: el texto buscado y los rubros elegidos viajan juntos por GET --}}
         <form action="{{ route('dashboard') }}" method="GET"
               x-data="{
+                  ...selectorRubros({ seleccionados: @js($rubrosElegidos), etiquetas: @js($etiquetas), grupos: @js($grupos) }),
                   abierto: false,
                   inicial: @js($rubrosElegidos),
-                  sel: @js($rubrosElegidos),
-                  etiquetas: @js($etiquetas),
                   cambio() { return JSON.stringify([...this.sel].sort()) !== JSON.stringify([...this.inicial].sort()); },
                   cerrar() { this.abierto = false; if (this.cambio()) { this.$nextTick(() => this.$root.requestSubmit()); } },
-                  quitar(r) { this.sel = this.sel.filter(x => x !== r); this.$nextTick(() => this.$root.requestSubmit()); },
-                  limpiar() { this.sel = []; this.$nextTick(() => this.$root.requestSubmit()); }
+                  quitarYBuscar(r) { const f = this.$root; this.quitar(r); this.$nextTick(() => f.requestSubmit()); },
+                  limpiarYBuscar() { const f = this.$root; this.limpiar(); this.$nextTick(() => f.requestSubmit()); }
               }"
               @keydown.escape.window="abierto && cerrar()">
 
@@ -101,13 +102,13 @@
 
             {{-- Rubros elegidos, cada uno con su × para quitarlo --}}
             <div class="mt-4 flex flex-wrap items-center gap-2" x-show="sel.length" style="display: none;">
-                <template x-for="r in sel" :key="r">
+                <template x-for="r in ordenados()" :key="r">
                     <span class="inline-flex items-center gap-1 rounded-full bg-green-100 py-1 pl-3 pr-1 text-sm font-semibold text-green-800">
-                        <span x-text="etiquetas[r] ?? r"></span>
-                        <button type="button" @click="quitar(r)" class="rounded-full px-2 hover:bg-green-200" aria-label="Quitar rubro">×</button>
+                        <span x-text="etiqueta(r)"></span>
+                        <button type="button" @click="quitarYBuscar(r)" class="rounded-full px-2 hover:bg-green-200" aria-label="Quitar rubro">×</button>
                     </span>
                 </template>
-                <button type="button" @click="limpiar()" class="ml-1 text-sm text-green-700 underline">Limpiar rubros</button>
+                <button type="button" @click="limpiarYBuscar()" class="ml-1 text-sm text-green-700 underline">Limpiar rubros</button>
             </div>
 
             {{-- Ventana emergente con los rubros (se pueden marcar varios) --}}
@@ -122,17 +123,8 @@
                     </div>
 
                     <div class="overflow-y-auto px-6 py-4">
-                        @foreach ($rubros as $grupo => $items)
-                            <p class="mb-2 mt-4 text-xs font-bold uppercase tracking-wide text-gray-500 first:mt-0">{{ $grupo }}</p>
-                            <div class="flex flex-wrap gap-2">
-                                @foreach ($items as $valor => $etiqueta)
-                                    <label class="cursor-pointer">
-                                        <input type="checkbox" value="{{ $valor }}" x-model="sel" class="peer sr-only">
-                                        <span class="inline-block rounded-full border border-gray-200 bg-gray-50 px-4 py-2 text-sm transition hover:border-[var(--primary-green)] peer-checked:border-[var(--primary-green)] peer-checked:bg-[var(--primary-green)] peer-checked:font-bold peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--primary-green)]">{{ $etiqueta }}</span>
-                                    </label>
-                                @endforeach
-                            </div>
-                        @endforeach
+                        <p class="mb-3 text-sm text-gray-600">Tocá una categoría para ver sus rubros y marcá uno o varios.</p>
+                        @include('comercios.partials.rubros-niveles', ['categorias' => $categorias, 'campo' => null, 'marcados' => $rubrosElegidos])
                     </div>
 
                     <div class="flex items-center justify-between border-t border-gray-200 px-6 py-4">
@@ -174,9 +166,15 @@
                             @endif
                             <div class="min-w-0">
                                 <h5 class="break-words text-lg font-bold text-gray-900">{{ $comercio->nombre }}</h5>
-                                <span class="mt-1 inline-block rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">
-                                    {{ $etiquetas[$comercio->rubro] ?? $comercio->rubro }}
-                                </span>
+                                @php $rubrosDelComercio = $comercio->rubros_etiquetas; @endphp
+                                <div class="mt-1 flex flex-wrap gap-1">
+                                    @foreach (array_slice($rubrosDelComercio, 0, 2) as $rubroEtiqueta)
+                                        <span class="inline-block rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">{{ $rubroEtiqueta }}</span>
+                                    @endforeach
+                                    @if (count($rubrosDelComercio) > 2)
+                                        <span class="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600" title="{{ implode(', ', array_slice($rubrosDelComercio, 2)) }}">+{{ count($rubrosDelComercio) - 2 }}</span>
+                                    @endif
+                                </div>
                             </div>
                         </div>
 
