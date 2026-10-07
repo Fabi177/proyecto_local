@@ -47,6 +47,38 @@ test('el alta trae un solo selector de ubicación: buscador, mapa, dirección y 
         ->assertDontSee('id="localidad_id"', false);
 });
 
+test('la ventana de ubicación no repite la dirección: se escribe en el buscador y se ubica con un botón', function () {
+    $this->actingAs(User::factory()->create(['role' => 'comerciante']))
+        ->get(route('comercio.create'))
+        ->assertOk()
+        // el botón junto al buscador
+        ->assertSee('Ubicar en el mapa')
+        ->assertSee('x-on:click="ubicar()"', false)
+        // el campo "Dirección (calle y número)" de la ventana ya no existe
+        ->assertDontSee('Dirección (calle y número)')
+        ->assertDontSee('id="ubicacion-direccion"', false)
+        // la localidad sigue pudiéndose elegir a mano y avisa cuando se completó sola
+        ->assertSee('id="ubicacion-localidad"', false)
+        ->assertSee('x-on:change="localidadManual()"', false)
+        ->assertSee('textoLocalidad', false);
+});
+
+test('las consultas a Photon usan la forma documentada y no mandan "lang" (un idioma que el servidor no tenga puede dar error 400)', function () {
+    $js = file_get_contents(resource_path('js/mapa-comercio.js'));
+
+    expect($js)->toContain('${PHOTON}/api?${params}')
+        ->and($js)->toContain('${PHOTON}/reverse?${params}')
+        ->and($js)->not->toContain('/api/?')
+        ->and($js)->not->toMatch('/lang\\s*:/');
+});
+
+test('el buscador de dirección no está atado a Leandro N. Alem', function () {
+    $js = file_get_contents(resource_path('js/mapa-comercio.js'));
+
+    expect($js)->not->toContain('CENTRO_ALEM')
+        ->and($js)->toContain('CENTRO_MISIONES');
+});
+
 test('la edición muestra la dirección, la localidad con su código postal y el punto guardado', function () {
     $comercio = duenoConComercio();
 
@@ -70,7 +102,7 @@ test('el formulario ofrece todas las localidades del catálogo dentro de la vent
 test('la dirección y la localidad siguen siendo obligatorias y se guardan como siempre', function () {
     $comercio = duenoConComercio();
     $alem = Localidad::where('nombre', 'Leandro N. Alem')->value('id');
-    $datos = ['nombre' => 'Café', 'rubro' => 'Cafe', 'localidad_id' => $alem];
+    $datos = ['nombre' => 'Café', 'rubros' => ['Cafe'], 'localidad_id' => $alem];
 
     $this->actingAs($comercio->user)
         ->patch(route('comercio.update', $comercio), $datos + ['direccion' => ''])

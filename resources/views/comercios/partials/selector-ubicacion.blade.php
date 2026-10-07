@@ -4,6 +4,8 @@
     Se incluye en comercios/create y comercios/edit, DENTRO del <form>. Variables: $localidades
     (id, nombre, codigo_postal) y, solo en la edición, $comercio.
     Envía cuatro campos ocultos: "direccion", "localidad_id", "latitud" y "longitud".
+    La dirección es lo que se escribe (o se elige de la lista) en el buscador de la ventana; la localidad
+    se completa sola al elegir una dirección y también se puede elegir a mano.
     La lógica está en resources/js/mapa-comercio.js (componente Alpine "selectorUbicacion").
 
     IMPORTANTE: todos los <button> de este archivo llevan type="button" para que
@@ -69,8 +71,9 @@
                 Buscá tu dirección y elegila de la lista, o hacé clic en el mapa. Podés arrastrar el marcador para ajustar el punto exacto.
             </p>
 
-            {{-- Buscador con sugerencias (por encima del mapa) --}}
-            <div class="relative z-20 mt-4" x-on:click.outside="abierto = false">
+            {{-- Buscador con sugerencias (por encima del mapa) + botón para ubicar lo escrito en el mapa --}}
+            <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+            <div class="relative z-20 min-w-0 flex-1" x-on:click.outside="abierto = false">
                 <div class="flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 shadow-sm focus-within:border-[var(--primary-green)] focus-within:ring-1 focus-within:ring-[var(--primary-green)]">
                     <svg class="h-5 w-5 flex-none text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
                     <input type="text" x-model="q"
@@ -79,8 +82,9 @@
                            x-on:keydown.arrow-up.prevent="mover(-1)"
                            x-on:keydown.enter="elegirActivo($event)"
                            x-on:keydown.escape="abierto = false"
+                           maxlength="255"
                            autocomplete="off" role="combobox" aria-autocomplete="list" aria-label="Buscar dirección"
-                           placeholder="Buscar dirección (ej: Av. Libertad 125)"
+                           placeholder="Buscar dirección (ej: Av. Uruguay 1200, Posadas)"
                            class="w-full border-0 bg-transparent py-3 text-sm focus:ring-0">
                     <button type="button" x-show="q" x-on:click="limpiarBusqueda()" style="display: none;" class="flex-none text-xl leading-none text-gray-400 hover:text-gray-600" aria-label="Borrar búsqueda">&times;</button>
                 </div>
@@ -98,7 +102,16 @@
                     </template>
                 </ul>
             </div>
+
+            <button type="button" x-on:click="ubicar()" :disabled="ubicando"
+                    class="flex-none rounded-full bg-[var(--primary-green)] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-[var(--primary-green)] focus:ring-offset-2 disabled:cursor-wait disabled:opacity-60">
+                <span x-text="ubicando ? 'Buscando...' : 'Ubicar en el mapa'">Ubicar en el mapa</span>
+            </button>
+            </div>
             <p class="mt-1 text-xs text-gray-500" x-show="aviso" x-text="aviso" style="display: none;"></p>
+            <p class="mt-1 text-xs text-amber-700" x-show="faltaNumero" style="display: none;">
+                Si tu dirección tiene número, agregalo al final (por ejemplo: Av. Uruguay 1200).
+            </p>
 
             <button type="button" x-on:click="usarMiUbicacion()" class="mt-2 text-sm font-medium text-[var(--light-blue)] hover:underline">
                 Usar mi ubicación actual
@@ -111,24 +124,19 @@
                 📍 <strong>¿Es acá tu comercio?</strong> Si no es exacto, arrastrá el marcador o hacé clic en el punto correcto.
             </p>
 
-            {{-- Dirección y localidad: se completan solas, pero se pueden corregir (por ejemplo, agregar el número) --}}
-            <div class="mt-4 grid gap-3 sm:grid-cols-2">
-                <div>
-                    <label for="ubicacion-direccion" class="block text-sm font-medium text-gray-700">Dirección (calle y número) *</label>
-                    <input id="ubicacion-direccion" type="text" x-model="tmpDir" x-on:input="dirAuto = false"
-                           x-on:keydown.enter.prevent
-                           class="mt-1 w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-[var(--primary-green)] focus:ring-[var(--primary-green)]">
-                </div>
-                <div>
-                    <label for="ubicacion-localidad" class="block text-sm font-medium text-gray-700">Localidad (código postal) *</label>
-                    <select id="ubicacion-localidad" x-model="tmpLoc" x-on:change="locAuto = false"
-                            class="mt-1 w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-[var(--primary-green)] focus:ring-[var(--primary-green)]">
-                        <option value="" disabled {{ $locInicial ? '' : 'selected' }}>Selecciona la localidad...</option>
-                        @foreach ($localidades as $localidad)
-                            <option value="{{ $localidad->id }}" {{ (string) $locInicial === (string) $localidad->id ? 'selected' : '' }}>{{ $localidad->nombre }} ({{ $localidad->codigo_postal }})</option>
-                        @endforeach
-                    </select>
-                </div>
+            {{-- Localidad: se completa sola al elegir una dirección de la lista, pero se puede elegir a mano --}}
+            <div class="mt-4">
+                <label for="ubicacion-localidad" class="block text-sm font-medium text-gray-700">Localidad (código postal) *</label>
+                <select id="ubicacion-localidad" x-model="tmpLoc" x-on:change="localidadManual()"
+                        class="mt-1 w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-[var(--primary-green)] focus:ring-[var(--primary-green)]">
+                    <option value="" disabled {{ $locInicial ? '' : 'selected' }}>Selecciona la localidad...</option>
+                    @foreach ($localidades as $localidad)
+                        <option value="{{ $localidad->id }}" {{ (string) $locInicial === (string) $localidad->id ? 'selected' : '' }}>{{ $localidad->nombre }} ({{ $localidad->codigo_postal }})</option>
+                    @endforeach
+                </select>
+                <p class="mt-1 text-xs"
+                   :class="locEstado === 'auto' ? 'text-green-700' : (locEstado === 'no-encontrada' ? 'text-amber-700' : 'text-gray-500')"
+                   x-text="textoLocalidad">Se completa sola al elegir una dirección de la lista; también la podés elegir a mano.</p>
             </div>
 
             <p class="mt-2 text-sm text-red-600" x-show="mensaje" x-text="mensaje" style="display: none;"></p>
