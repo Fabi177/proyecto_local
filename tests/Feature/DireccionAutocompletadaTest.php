@@ -102,7 +102,7 @@ test('el formulario ofrece todas las localidades del catálogo dentro de la vent
 test('la dirección y la localidad siguen siendo obligatorias y se guardan como siempre', function () {
     $comercio = duenoConComercio();
     $alem = Localidad::where('nombre', 'Leandro N. Alem')->value('id');
-    $datos = ['nombre' => 'Café', 'rubros' => ['Cafe'], 'localidad_id' => $alem];
+    $datos = ['nombre' => 'Café', 'rubro' => 'Cafe', 'localidad_id' => $alem];
 
     $this->actingAs($comercio->user)
         ->patch(route('comercio.update', $comercio), $datos + ['direccion' => ''])
